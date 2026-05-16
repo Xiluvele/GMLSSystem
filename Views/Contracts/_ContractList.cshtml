@@ -1,0 +1,82 @@
+﻿@model IEnumerable<GMLSSystem.Models.Contract>
+
+@if (Model.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Contract #</th>
+                    <th>Client Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Service Level</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var contract in Model)
+                {
+                    <tr>
+                        <td>
+                            <strong>@contract.ContractNumber</strong>
+                            @if (!string.IsNullOrEmpty(contract.SignedAgreementPath))
+                            {
+                                <br />
+                                <a href="@contract.SignedAgreementPath" target="_blank" class="small">
+                                    <i class="fas fa-file-pdf text-danger"></i> View PDF
+                                </a>
+                            }
+                        </td>
+                        <td>@contract.ClientName</td>
+                        <td>@contract.StartDate.ToShortDateString()</td>
+                        <td>@contract.EndDate.ToShortDateString()</td>
+                        <td>
+                            <span class="badge bg-info">@contract.ServiceLevel</span>
+                        </td>
+                        <td>
+                            @{
+                                var statusClass = contract.Status.ToString() switch
+                                {
+                                    "Active" => "success",
+                                    "Draft" => "warning",
+                                    "Expired" => "danger",
+                                    "OnHold" => "secondary",
+                                    _ => "secondary"
+                                };
+                            }
+                            <span class="badge bg-@statusClass">@contract.Status</span>
+                        </td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@contract.ContractId" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            @if (User.IsInRole("Admin") || User.IsInRole("ContractManager"))
+                            {
+                                <a asp-action="Edit" asp-route-id="@contract.ContractId" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            }
+                            @if (User.IsInRole("Admin") || User.IsInRole("LogisticsCoordinator"))
+                            {
+                                if (contract.canCreateServiceRequest())
+                                {
+                                    <a asp-controller="ServiceRequests" asp-action="Create" asp-route-contractId="@contract.ContractId" class="btn btn-sm btn-success">
+                                        <i class="fas fa-plus"></i> Request
+                                    </a>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle"></i> No contracts found.
+    </div>
+}

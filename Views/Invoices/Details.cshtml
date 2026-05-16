@@ -1,0 +1,149 @@
+﻿@model GMLSSystem.Models.Invoice
+@using GMLSSystem.Models
+@{
+    ViewData["Title"] = "Invoice Details";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-file-invoice"></i> Invoice Details</h4>
+                        <span class="badge bg-light text-dark">@Model.InvoiceNumber</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Invoice Header -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6>Bill To:</h6>
+                            <p class="mb-0"><strong>@Model.ClientName</strong></p>
+                            <p class="mb-0">Contract: @Model.Contract?.ContractNumber</p>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <h6>Invoice Details:</h6>
+                            <p class="mb-0">Invoice Date: @Model.InvoiceDate.ToString("yyyy-MM-dd")</p>
+                            <p class="mb-0">Due Date: @Model.DueDate.ToString("yyyy-MM-dd")</p>
+                            <p class="mb-0">
+                                Status: 
+                                @{
+                                    var statusClass = Model.Status.ToString() switch
+                                    {
+                                        "Paid" => "success",
+                                        "Sent" => "info",
+                                        "Draft" => "secondary",
+                                        "Overdue" => "danger",
+                                        "Cancelled" => "dark",
+                                        _ => "secondary"
+                                    };
+                                }
+                                <span class="badge bg-@statusClass">@Model.Status</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Invoice Items -->
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-end">Quantity</th>
+                                    <th class="text-end">Unit Price</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Items != null && Model.Items.Any())
+                                {
+                                    foreach (var item in Model.Items)
+                                    {
+                                        <tr>
+                                            <td>@item.Description</td>
+                                            <td class="text-end">@item.Quantity</td>
+                                            <td class="text-end">@(Model.Currency == "USD" ? "$" : "R")@item.UnitPrice.ToString("N2")</td>
+                                            <td class="text-end">@(Model.Currency == "USD" ? "$" : "R")@item.Total.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">No items found</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Subtotal:</strong></td>
+                                    <td class="text-end">@(Model.Currency == "USD" ? "$" : "R")@Model.Subtotal.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Tax (@Model.TaxRate%):</strong></td>
+                                    <td class="text-end">@(Model.Currency == "USD" ? "$" : "R")@Model.TaxAmount.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                    <td class="text-end"><strong>@(Model.Currency == "USD" ? "$" : "R")@Model.TotalAmount.ToString("N2")</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Notes -->
+                    @if (!string.IsNullOrEmpty(Model.Notes))
+                    {
+                        <div class="alert alert-secondary">
+                            <strong>Notes:</strong><br />
+                            @Model.Notes
+                        </div>
+                    }
+
+                    @if (Model.PaidAt.HasValue)
+                    {
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> Paid on: @Model.PaidAt.Value.ToString("yyyy-MM-dd HH:mm")
+                        </div>
+                    }
+                </div>
+                <div class="card-footer">
+                    @if (User.IsInRole("Admin") || User.IsInRole("FinanceUser"))
+                    {
+                        <form asp-action="UpdateStatus" asp-route-id="@Model.InvoiceId" method="post" class="d-inline">
+                            @{
+                                var statusOptions = new Dictionary<string, string>
+                        {
+                        { "Draft", "Draft" },
+                        { "Sent", "Sent" },
+                        { "Paid", "Paid" },
+                        { "Cancelled", "Cancelled" }
+                        };
+                            }
+
+                            <select name="status" class="form-select d-inline-block w-auto" onchange="this.form.submit()">
+                                @foreach (var option in statusOptions)
+                                {
+                                    if (option.Key == Model.Status.ToString())
+                                    {
+                                        <option value="@option.Key" selected>@option.Value</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@option.Key">@option.Value</option>
+                                    }
+                                }
+                            </select>
+                        </form>
+                        <span class="ms-2 text-muted">Update Status</span>
+                    }
+                    <a asp-action="Print" asp-route-id="@Model.InvoiceId" class="btn btn-secondary ms-2" target="_blank">
+                        <i class="fas fa-print"></i> Print
+                    </a>
+                    <a asp-action="Index" class="btn btn-link">Back to List</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,87 @@
+﻿@model GMLSSystem.ViewModels.UserSettingsViewModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="fas fa-cog"></i> System Settings</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Settings" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <!-- Notification Settings -->
+                        <h5 class="border-bottom pb-2 mb-3">
+                            <i class="fas fa-bell"></i> Notifications
+                        </h5>
+                        <div class="form-check mb-3">
+                            <input asp-for="EmailNotifications" class="form-check-input" type="checkbox" />
+                            <label asp-for="EmailNotifications" class="form-check-label"></label>
+                            <small class="d-block text-muted">Receive email notifications for contract updates and service requests</small>
+                        </div>
+
+                        <!-- Security Settings -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-shield-alt"></i> Security
+                        </h5>
+                        <div class="form-check mb-3">
+                            <input asp-for="TwoFactorEnabled" class="form-check-input" type="checkbox" />
+                            <label asp-for="TwoFactorEnabled" class="form-check-label"></label>
+                            <small class="d-block text-muted">Add an extra layer of security to your account</small>
+                        </div>
+
+                        <!-- Appearance Settings -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-palette"></i> Appearance
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Theme" class="form-label"></label>
+                                <select asp-for="Theme" class="form-select">
+                                    <option value="Light">Light</option>
+                                    <option value="Dark">Dark</option>
+                                    <option value="System">System Default</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Language" class="form-label"></label>
+                                <select asp-for="Language" class="form-select">
+                                    <option value="English">English</option>
+                                    <option value="Afrikaans">Afrikaans</option>
+                                    <option value="Zulu">Zulu</option>
+                                    <option value="Xhosa">Xhosa</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Session Info -->
+                        <div class="alert alert-secondary mt-3">
+                            <i class="fas fa-clock"></i> <strong>Session Information</strong><br />
+                            <small>Session Timeout: 30 minutes</small><br />
+                            <small>Last activity: @DateTime.Now.ToString("HH:mm:ss")</small>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-info">
+                                <i class="fas fa-save"></i> Save Settings
+                            </button>
+                            <a asp-action="Profile" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Profile
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -1,0 +1,141 @@
+﻿@{
+    ViewData["Title"] = "Reports Dashboard";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fas fa-chart-line"></i> Reports Dashboard</h1>
+            <p class="text-muted mb-0">View and export system reports</p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body">
+                    <div class="stat-icon">
+                        <i class="fas fa-file-contract fa-2x"></i>
+                    </div>
+                    <h3 class="mb-0">@ViewBag.TotalContracts</h3>
+                    <p class="mb-0">Total Contracts</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                    <h3 class="mb-0">@ViewBag.ActiveContracts</h3>
+                    <p class="mb-0">Active Contracts</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-warning text-white">
+                <div class="card-body">
+                    <div class="stat-icon">
+                        <i class="fas fa-truck fa-2x"></i>
+                    </div>
+                    <h3 class="mb-0">@ViewBag.TotalServiceRequests</h3>
+                    <p class="mb-0">Service Requests</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card bg-primary text-white">
+                <div class="card-body">
+                    <div class="stat-icon">
+                        <i class="fas fa-rand fa-2x"></i>
+                    </div>
+                    <h3 class="mb-0">R @ViewBag.TotalRevenue.ToString("N0")</h3>
+                    <p class="mb-0">Total Revenue</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Cards -->
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-contract"></i> Contracts Report</h5>
+                </div>
+                <div class="card-body">
+                    <p>View and export contract reports with filter options by date range and status.</p>
+                    <ul class="text-muted">
+                        <li>Filter by start/end date</li>
+                        <li>Filter by contract status</li>
+                        <li>Export to CSV format</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="ContractsReport" class="btn btn-primary w-100">
+                        <i class="fas fa-chart-bar"></i> Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Financial Report</h5>
+                </div>
+                <div class="card-body">
+                    <p>View financial data including revenue by date range.</p>
+                    <ul class="text-muted">
+                        <li>Filter by date range</li>
+                        <li>View USD and ZAR totals</li>
+                        <li>Export to CSV format</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="FinancialReport" class="btn btn-success w-100">
+                        <i class="fas fa-chart-line"></i> Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="fas fa-truck"></i> Service Requests Report</h5>
+                </div>
+                <div class="card-body">
+                    <p>View service requests with filter options by date range and status.</p>
+                    <ul class="text-muted">
+                        <li>Filter by date range</li>
+                        <li>Filter by request status</li>
+                        <li>Export to CSV format</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="ServiceRequestsReport" class="btn btn-warning w-100">
+                        <i class="fas fa-truck"></i> Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stat-card {
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+    .card {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>

@@ -1,0 +1,76 @@
+﻿## Ignore Visual Studio temporary files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Build folders
+bin/
+obj/
+
+## Rider / VS Code
+.idea/
+.vscode/
+
+## ASP.NET Core
+appsettings.Development.json
+
+## Logs
+*.log
+
+## SQL Server LocalDB
+*.mdf
+*.ldf
+
+## NuGet
+*.nupkg
+packages/
+
+## Entity Framework
+Migrations/*Snapshot.cs
+
+## Test Results
+TestResults/
+*.trx
+
+## Coverage Reports
+coverage/
+coverage.json
+coverage.xml
+
+## Node modules (if added later)
+node_modules/
+
+## OS Files
+.DS_Store
+Thumbs.db
+
+## Publish output
+publish/
+
+## Azure
+.azure/
+
+## IIS Express
+iisexpress/
+
+## Resharper
+_ReSharper*/
+*.DotSettings.user
+
+## Generated files
+Generated_Code/
+
+## Docker
+docker-compose.override.yml
+
+## Temporary files
+*.tmp
+*.temp
+
+## Secrets
+secrets.json
+
+## Visual Studio cache
+*.cache

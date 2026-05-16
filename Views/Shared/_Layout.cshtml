@@ -1,0 +1,427 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - GLMS</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        /* Custom Styles */
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            transform: translateY(-2px);
+            color: #667eea !important;
+        }
+
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+
+        .dropdown-item:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .role-badge {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+            margin-left: 8px;
+        }
+
+        .role-admin { background-color: #dc3545; color: white; }
+        .role-manager { background-color: #fd7e14; color: white; }
+        .role-logistics { background-color: #20c997; color: white; }
+        .role-finance { background-color: #0dcaf0; color: white; }
+        .role-client { background-color: #6c757d; color: white; }
+
+        .footer {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            margin-top: auto;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="fas fa-globe"></i> GLMS
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <!-- Dashboard - Visible to all authenticated users -->
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Dashboard">
+                                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                                </a>
+                            </li>
+
+                            <!-- Contract Management - Admin & Contract Manager -->
+                            @if (User.IsInRole("Admin") || User.IsInRole("ContractManager"))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-dark" href="#" id="contractsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-file-contract"></i> Contracts
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="contractsDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Contracts" asp-action="Index">All Contracts</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Contracts" asp-action="ActiveContracts">Active Contracts</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Contracts" asp-action="ExpiringSoon">Expiring Soon</a></li>
+
+                                    </ul>
+                                </li>
+                            }
+
+                            <!-- Service Requests - Admin & Logistics Coordinator -->
+                            @if (User.IsInRole("Admin") || User.IsInRole("LogisticsCoordinator"))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-dark" href="#" id="requestsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-truck"></i> Service Requests
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="requestsDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="ServiceRequests" asp-action="Index">All Requests</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item"
+                                               asp-area=""
+                                               asp-controller="Contracts"
+                                               asp-action="Index">
+                                                Create New Request
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            }
+
+                            <!-- Invoices - Admin & Finance User -->
+                            @if (User.IsInRole("Admin") || User.IsInRole("FinanceUser"))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-dark" href="#" id="invoicesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-file-invoice-dollar"></i> Invoices
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="invoicesDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Invoices" asp-action="Index">All Invoices</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Invoices" asp-action="Generate">Generate Invoice</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Invoices" asp-action="UnpaidInvoices">Unpaid Invoices</a></li>
+                                    </ul>
+                                </li>
+                            }
+
+                            <!-- Clients - Admin only -->
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-dark" href="#" id="clientsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-building"></i> Clients
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="clientsDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Clients" asp-action="Index">All Clients</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Clients" asp-action="Create">Add New Client</a></li>
+                                    </ul>
+                                </li>
+                            }
+
+                            <!-- User Management - Admin only -->
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-dark" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-user-shield"></i> Administration
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Admin" asp-action="Users">Manage Users</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Admin" asp-action="SystemLogs">System Logs</a></li>
+                                        <li><a class="dropdown-item" asp-area="" asp-controller="Admin" asp-action="Settings">System Settings</a></li>
+                                    </ul>
+                                </li>
+                            }
+
+                            <!-- Client Portal - Client role only -->
+                            @if (User.IsInRole("Client"))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-dark" href="#" id="clientDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-user"></i> My Portal
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="clientDropdown">
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Contracts" asp-action="MyContracts">
+                                                <i class="fas fa-file-contract"></i> My Contracts
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="ServiceRequests" asp-action="MyRequests">
+                                                <i class="fas fa-truck"></i> My Service Requests
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" asp-controller="Invoices" asp-action="MyInvoices">
+                                                <i class="fas fa-file-invoice-dollar"></i> My Invoices
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            }
+
+                            <!-- Reports - Admin, Finance, Manager -->
+                            @if (User.IsInRole("Admin") || User.IsInRole("FinanceUser") || User.IsInRole("ContractManager"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark" asp-area="" asp-controller="Reports" asp-action="Index">
+                                        <i class="fas fa-chart-line"></i> Reports
+                                    </a>
+                                </li>
+                            }
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="About">About</a>
+                            </li>
+                        }
+                    </ul>
+
+                    <!-- User Profile Section -->
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <ul class="navbar-nav">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <div class="user-avatar d-inline-flex">
+                                        @User.Identity.Name.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <span class="fw-bold">@User.Identity.Name</span>
+                                    @{
+                                        var role = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
+                                        var roleClass = role?.ToLower() switch
+                                        {
+                                            "admin" => "role-admin",
+                                            "contractmanager" => "role-manager",
+                                            "logisticscoordinator" => "role-logistics",
+                                            "financeuser" => "role-finance",
+                                            "client" => "role-client",
+                                            _ => "role-client"
+                                        };
+                                    }
+                                    <span class="role-badge @roleClass">@role</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Profile">
+                                            <i class="fas fa-user-circle"></i> My Profile
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="ChangePassword">
+                                            <i class="fas fa-key"></i> Change Password
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Settings">
+                                            <i class="fas fa-cog"></i> Settings
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-area=""
+                                              asp-controller="Account"
+                                              asp-action="Logout"
+                                              method="post"
+                                              class="d-inline">
+
+                                            @Html.AntiForgeryToken()
+
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="fas fa-sign-out-alt"></i> Logout
+                                            </button>
+
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    }
+                    else
+                    {
+                        <partial name="_LoginPartial" />
+                    }
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <!-- Breadcrumb Navigation -->
+        @if (ViewContext.RouteData.Values["controller"]?.ToString() != "Home")
+        {
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a asp-controller="Home" asp-action="Index"><i class="fas fa-home"></i> Home</a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        @ViewContext.RouteData.Values["controller"]
+                    </li>
+                    @if (ViewContext.RouteData.Values["action"]?.ToString() != "Index")
+                    {
+                        <li class="breadcrumb-item active" aria-current="page">
+                            @ViewContext.RouteData.Values["action"]
+                        </li>
+                    }
+                </ol>
+            </nav>
+        }
+
+        <!-- Alert Messages -->
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                <i class="fas fa-check-circle"></i> @TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["Warning"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
+                <i class="fas fa-exclamation-triangle"></i> @TempData["Warning"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (TempData["Info"] != null)
+        {
+            <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+                <i class="fas fa-info-circle"></i> @TempData["Info"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="footer mt-auto py-3">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6><i class="fas fa-globe"></i> Global Logistics Management System</h6>
+                    <p class="small">Enterprise-grade logistics solution for modern supply chain management.</p>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="fas fa-link"></i> Quick Links</h6>
+                    <ul class="list-unstyled small">
+                        <li><a asp-controller="Home" asp-action="Index">Home</a></li>
+                        <li><a asp-controller="Home" asp-action="About">About Us</a></li>
+                        <li><a asp-controller="Home" asp-action="Privacy">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="fas fa-clock"></i> System Status</h6>
+                    <p class="small mb-0">Version: 1.0.0</p>
+                    <p class="small mb-0">Status: <span class="text-success text-black">Operational</span></p>
+@*                     <p class="small">Last Updated: @DateTime.Now.ToString("yyyy-MM-dd HH:mm")</p>
+ *@                </div>
+            </div>
+            <hr class="bg-light">
+            <div class="text-center small">
+                &copy; @DateTime.Now.Year - Global Logistics Management System (GLMS) - All Rights Reserved
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        $(document).ready(function() {
+            setTimeout(function() {
+                $(".alert").fadeOut("slow");
+            }, 5000);
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

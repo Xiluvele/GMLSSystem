@@ -1,0 +1,309 @@
+﻿@model IEnumerable<GMLSSystem.Models.Client>
+
+@{
+    ViewData["Title"] = "Clients";
+}
+
+<div class="container-fluid">
+
+    <!-- PAGE HEADER -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+            <h1>
+                <i class="fas fa-building"></i>
+                Clients
+            </h1>
+
+            <p class="text-muted mb-0">
+                Manage all client companies and their details
+            </p>
+        </div>
+
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Add New Client
+        </a>
+
+    </div>
+
+    <!-- CARD -->
+    <div class="card">
+
+        <div class="card-body">
+
+            <!-- LIVE SEARCH -->
+            <div class="row mb-3">
+
+                <div class="col-md-6">
+
+                    <div class="input-group">
+
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+
+                        <input type="text"
+                               id="clientSearch"
+                               class="form-control"
+                               placeholder="Search clients by name, email, phone, or region..." />
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- TABLE -->
+            <div class="table-responsive">
+
+                <table class="table table-hover"
+                       id="clientsTable">
+
+                    <thead class="table-light">
+
+                        <tr>
+
+                            <th>
+                                <i class="fas fa-building"></i>
+                                Name
+                            </th>
+
+                            <th>
+                                <i class="fas fa-envelope"></i>
+                                Email
+                            </th>
+
+                            <th>
+                                <i class="fas fa-phone"></i>
+                                Phone
+                            </th>
+
+                            <th>
+                                <i class="fas fa-globe"></i>
+                                Region
+                            </th>
+
+                            <th>
+                                <i class="fas fa-calendar"></i>
+                                Created
+                            </th>
+
+                            <th>
+                                <i class="fas fa-cogs"></i>
+                                Actions
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+
+                                <!-- NAME -->
+                                <td>
+
+                                    <strong>@item.Name</strong>
+
+                                    @if (!string.IsNullOrEmpty(item.Address))
+                                    {
+                                        <br />
+
+                                        <small class="text-muted">
+
+                                            @(item.Address.Length > 40
+                                                ? item.Address.Substring(0, 40) + "..."
+                                                : item.Address)
+
+                                        </small>
+                                    }
+
+                                </td>
+
+                                <!-- EMAIL -->
+                                <td>
+
+                                    <a href="mailto:@item.ContactEmail"
+                                       class="text-decoration-none">
+
+                                        @item.ContactEmail
+
+                                    </a>
+
+                                </td>
+
+                                <!-- PHONE -->
+                                <td>
+
+                                    @(string.IsNullOrEmpty(item.ContactPhone)
+                                        ? "N/A"
+                                        : item.ContactPhone)
+
+                                </td>
+
+                                <!-- REGION -->
+                                <td>
+
+                                    @if (!string.IsNullOrEmpty(item.Region))
+                                    {
+                                        var regionClass = item.Region.ToLower() switch
+                                        {
+                                            "international" => "info",
+                                            "johannesburg" => "success",
+                                            "cape town" => "primary",
+                                            "durban" => "warning",
+                                            _ => "secondary"
+                                        };
+
+                                        <span class="badge bg-@regionClass">
+                                            @item.Region
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            Not specified
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <!-- CREATED -->
+                                <td>
+                                    @item.CreatedAt.ToString("yyyy-MM-dd")
+                                </td>
+
+                                <!-- ACTIONS -->
+                                <td>
+
+                                    <div class="btn-group" role="group">
+
+                                        <!-- EDIT -->
+                                        <a asp-action="Edit"
+                                           asp-route-id="@item.ClientId"
+                                           class="btn btn-sm btn-warning text-white"
+                                           title="Edit">
+
+                                            <i class="fas fa-edit"></i>
+
+                                        </a>
+
+                                        <!-- DETAILS -->
+                                        <a asp-action="Details"
+                                           asp-route-id="@item.ClientId"
+                                           class="btn btn-sm btn-info text-white"
+                                           title="Details">
+
+                                            <i class="fas fa-eye"></i>
+
+                                        </a>
+
+                                        <!-- DELETE -->
+                                        <a asp-action="Delete"
+                                           asp-route-id="@item.ClientId"
+                                           class="btn btn-sm btn-danger text-white"
+                                           title="Delete"
+                                           onclick="return confirm('Are you sure you want to delete @item.Name?');">
+
+                                            <i class="fas fa-trash"></i>
+
+                                        </a>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <!-- EMPTY STATE -->
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5">
+
+                    <i class="fas fa-building fa-3x text-muted mb-3"></i>
+
+                    <p class="text-muted">
+                        No clients found.
+                    </p>
+
+                    <a asp-action="Create"
+                       class="btn btn-primary">
+
+                        Add your first client
+
+                    </a>
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- STYLES -->
+<style>
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(102, 126, 234, 0.05);
+        cursor: pointer;
+    }
+
+    .btn-group .btn {
+        margin: 0 2px;
+    }
+
+    .badge {
+        padding: 5px 10px;
+        font-weight: 500;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+</style>
+
+<!-- LIVE SEARCH SCRIPT -->
+@section Scripts {
+
+    <script>
+
+        $(document).ready(function () {
+
+            $("#clientSearch").on("keyup", function () {
+
+                var value = $(this).val().toLowerCase();
+
+                $("#clientsTable tbody tr").filter(function () {
+
+                    $(this).toggle(
+
+                        $(this)
+                        .text()
+                        .toLowerCase()
+                        .indexOf(value) > -1
+
+                    );
+
+                });
+
+            });
+
+        });
+
+    </script>
+
+}

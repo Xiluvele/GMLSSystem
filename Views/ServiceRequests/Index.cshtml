@@ -1,0 +1,125 @@
+﻿@model IEnumerable<GMLSSystem.Models.ServiceRequest>
+@{
+    ViewData["Title"] = "Service Requests";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-truck"></i> Service Requests</h1>
+    </div>
+
+    <!-- Search/Filter Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-search"></i> Search & Filter</h5>
+        </div>
+        <div class="card-body">
+            <form id="searchForm" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Search</label>
+                    <input type="text" id="searchTerm" class="form-control" placeholder="Request , Description, or Contract ..." />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select id="statusFilter" class="form-select">
+                        <option value="">All Status</option>
+                        <option value="Pending">Pending</option>
+                        <option value="InProgress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="button" id="searchBtn" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+               
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Filter Buttons -->
+    <div class="btn-group mb-4" role="group">
+        <button type="button" class="btn btn-outline-secondary filter-status" data-status="">All</button>
+        <button type="button" class="btn btn-outline-warning filter-status" data-status="Pending">Pending</button>
+        <button type="button" class="btn btn-outline-info filter-status" data-status="InProgress">In Progress</button>
+        <button type="button" class="btn btn-outline-success filter-status" data-status="Completed">Completed</button>
+        <button type="button" class="btn btn-outline-danger filter-status" data-status="Cancelled">Cancelled</button>
+    </div>
+
+    <!-- Results Count -->
+    <div id="resultsCount" class="text-muted mb-2"></div>
+
+    <!-- Service Requests Table -->
+    <div id="requestsList">
+        @await Html.PartialAsync("_RequestList", Model)
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function loadRequests() {
+            var status = $('#statusFilter').val();
+            var searchTerm = $('#searchTerm').val();
+
+            // If status is empty string, send null
+            if (status === "") {
+                status = null;
+            }
+
+            $.ajax({
+                url: '@Url.Action("Search", "ServiceRequests")',
+                type: 'GET',
+                data: { status: status, searchTerm: searchTerm },
+                success: function(data) {
+                    $('#requestsList').html(data);
+                    updateResultsCount();
+                },
+                error: function(xhr, status, error) {
+                    console.log("Error: " + error);
+                    $('#requestsList').html('<div class="alert alert-danger">Error loading data</div>');
+                }
+            });
+        }
+
+        function updateResultsCount() {
+            var rowCount = $('#requestsList table tbody tr').length;
+            if (rowCount === 0 || ($('#requestsList table tbody tr td[colspan]').length > 0)) {
+                $('#resultsCount').text('No results found');
+            } else {
+                $('#resultsCount').text('Showing ' + rowCount + ' result(s)');
+            }
+        }
+
+        // Search button click
+        $('#searchBtn').click(function() {
+            loadRequests();
+        });
+
+       
+
+        // Quick filter buttons
+        $('.filter-status').click(function() {
+            var status = $(this).data('status');
+            $('#statusFilter').val(status);
+            loadRequests();
+
+            // Update active state on buttons
+            $('.filter-status').removeClass('active');
+            $(this).addClass('active');
+        });
+
+        // Enter key press in search box
+        $('#searchTerm').keypress(function(e) {
+            if (e.which === 13) {
+                loadRequests();
+            }
+        });
+
+        // Initial results count
+        $(document).ready(function() {
+            updateResultsCount();
+        });
+    </script>
+}

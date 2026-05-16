@@ -1,0 +1,111 @@
+﻿@using GMLSSystem.Models.Enums
+@model IEnumerable<GMLSSystem.Models.ServiceRequest>
+@{
+    ViewData["Title"] = "Financial Report";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fas fa-chart-line"></i> Financial Report</h1>
+            <p class="text-muted mb-0">View revenue and financial data</p>
+        </div>
+        <a asp-action="ExportFinancial" asp-route-startDate="@ViewBag.StartDate" asp-route-endDate="@ViewBag.EndDate" class="btn btn-success">
+            <i class="fas fa-file-excel"></i> Export to CSV
+        </a>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-filter"></i> Filter Options</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">Start Date From</label>
+                    <input type="date" name="startDate" class="form-control" value="@ViewBag.StartDate?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">End Date To</label>
+                    <input type="date" name="endDate" class="form-control" value="@ViewBag.EndDate?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h3>$@ViewBag.TotalUSD.ToString("N2")</h3>
+                    <p>Total Revenue (USD)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h3>R @ViewBag.TotalZAR.ToString("N2")</h3>
+                    <p>Total Revenue (ZAR)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Request #</th>
+                            <th>Contract</th>
+                            <th>Description</th>
+                            <th>Cost (USD)</th>
+                            <th>Cost (ZAR)</th>
+                            <th>Exchange Rate</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                     </thead>
+                    
+                    <tbody>
+                        @foreach (var request in Model)
+                        {
+                            <tr>
+                                <td>@request.RequestNumber</td>
+                                <td>@request.Contract?.ContractNumber</td>
+                                <td>@request.Description</td>
+                                <td>$@request.CostUSD.ToString("N2")</td>
+                                <td>R @request.CostZAR.ToString("N2")</td>
+                                <td>1 USD = @request.ExchangeRate.ToString("F2") ZAR</td>
+                                <td>@request.RequestDate.ToShortDateString()</td>
+                                <td>
+                                    <span class="badge bg-@(request.Status == RequestStatus.Completed ? "success" : "warning")">
+                                        @request.Status
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No transactions found</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,91 @@
+﻿@model GMLSSystem.ViewModels.ProfileViewModel
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-user-circle"></i> My Profile</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Profile" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <!-- User Info Summary -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i> <strong>Account Information</strong><br />
+                                    <small>Role: <span class="badge bg-primary">@Model.Role</span></small><br />
+                                    <small>Member since: @Model.CreatedAt.ToString("MMMM dd, yyyy")</small><br />
+                                    <small>Last login: @(Model.LastLoginAt?.ToString("MMMM dd, yyyy HH:mm") ?? "N/A")</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="alert @(Model.IsActive ? "alert-success" : "alert-danger")">
+                                    <i class="fas @(Model.IsActive ? "fa-check-circle" : "fa-exclamation-circle")"></i>
+                                    <strong>Account Status:</strong> @(Model.IsActive ? "Active" : "Inactive")
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Username" class="form-label"></label>
+                                <input asp-for="Username" class="form-control" readonly disabled />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Role" class="form-label"></label>
+                                <input asp-for="Role" class="form-control" readonly disabled />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="FullName" class="form-label"></label>
+                            <input asp-for="FullName" class="form-control" required />
+                            <span asp-validation-for="FullName" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Email" class="form-label"></label>
+                                <input asp-for="Email" type="email" class="form-control" required />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PhoneNumber" class="form-label"></label>
+                                <input asp-for="PhoneNumber" class="form-control" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        @if (Model.Role == "Client" && !string.IsNullOrEmpty(Model.ClientName))
+                        {
+                            <div class="alert alert-secondary">
+                                <i class="fas fa-building"></i> <strong>Associated Client:</strong> @Model.ClientName
+                            </div>
+                        }
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                            <a asp-controller="Home" asp-action="Dashboard" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

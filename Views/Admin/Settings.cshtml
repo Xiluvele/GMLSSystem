@@ -1,0 +1,125 @@
+﻿@model GMLSSystem.Models.SystemSettings
+@{
+    ViewData["Title"] = "System Settings";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-cog"></i> System Settings</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Settings" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <!-- Company Information -->
+                        <h5 class="border-bottom pb-2 mb-3">
+                            <i class="fas fa-building"></i> Company Information
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="CompanyName" class="form-label"></label>
+                                <input asp-for="CompanyName" class="form-control" />
+                                <span asp-validation-for="CompanyName" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CompanyEmail" class="form-label"></label>
+                                <input asp-for="CompanyEmail" type="email" class="form-control" />
+                                <span asp-validation-for="CompanyEmail" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CompanyPhone" class="form-label"></label>
+                                <input asp-for="CompanyPhone" class="form-control" />
+                                <span asp-validation-for="CompanyPhone" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Financial Settings -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-chart-line"></i> Financial Settings
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="TaxRate" class="form-label"></label>
+                                <input asp-for="TaxRate" type="number" class="form-control" step="0.01" />
+                                <span asp-validation-for="TaxRate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="DefaultCurrency" class="form-label"></label>
+                                <select asp-for="DefaultCurrency" class="form-select">
+                                    <option value="ZAR">South African Rand (ZAR)</option>
+                                    <option value="USD">US Dollar (USD)</option>
+                                    <option value="EUR">Euro (EUR)</option>
+                                    <option value="GBP">British Pound (GBP)</option>
+                                </select>
+                                <span asp-validation-for="DefaultCurrency" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Security Settings -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-shield-alt"></i> Security Settings
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="SessionTimeoutMinutes" class="form-label"></label>
+                                <input asp-for="SessionTimeoutMinutes" type="number" class="form-control" />
+                                <span asp-validation-for="SessionTimeoutMinutes" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="MaxLoginAttempts" class="form-label"></label>
+                                <input asp-for="MaxLoginAttempts" type="number" class="form-control" />
+                                <span asp-validation-for="MaxLoginAttempts" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input asp-for="EnableEmailNotifications" class="form-check-input" type="checkbox" />
+                            <label asp-for="EnableEmailNotifications" class="form-check-label"></label>
+                        </div>
+
+                        <!-- Backup Settings -->
+                        <h5 class="border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-database"></i> Backup Settings
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-check">
+                                    <input asp-for="BackupEnabled" class="form-check-input" type="checkbox" />
+                                    <label asp-for="BackupEnabled" class="form-check-label"></label>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="BackupFrequency" class="form-label"></label>
+                                <select asp-for="BackupFrequency" class="form-select">
+                                    <option value="Daily">Daily</option>
+                                    <option value="Weekly">Weekly</option>
+                                    <option value="Monthly">Monthly</option>
+                                </select>
+                                <span asp-validation-for="BackupFrequency" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Settings
+                            </button>
+                            <a asp-action="Dashboard" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

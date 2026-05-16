@@ -1,0 +1,95 @@
+﻿@model GMLSSystem.Models.ServiceRequest
+@{
+    ViewData["Title"] = "Create Service Request";
+    var contract = ViewBag.Contract as GMLSSystem.Models.Contract;
+    var currentRate = ViewBag.CurrentRate;
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-truck"></i> Create Service Request</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Contract Information -->
+                    <div class="alert alert-info">
+                        <h5>Contract Information</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Contract #:</strong> @contract?.ContractNumber<br />
+                                <strong>Client:</strong> @contract?.ClientName<br />
+                                <strong>Service Level:</strong> @contract?.ServiceLevel
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Status:</strong>
+                                <span class="badge bg-success">@contract?.Status</span><br />
+                                <strong>Exchange Rate:</strong> 1 USD = @currentRate?.ToString("F2") ZAR
+                            </div>
+                        </div>
+                    </div>
+
+                    <form asp-action="Create" method="post"  enctype="multipart/form-data">
+                        <div asp-validation-summary="All" class="alert alert-danger"></div>
+                        <input type="hidden" asp-for="ContractId" />
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Description *</label>
+                            <textarea asp-for="Description" class="form-control" rows="3" required></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="costUSD" class="form-label">Cost (USD) *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" id="costUSD" name="costUSD" class="form-control" step="0.01" required />
+                                </div>
+                                <small class="text-muted">Enter amount in US Dollars</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="costZAR" class="form-label">Cost (ZAR)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R</span>
+                                    <input type="text" id="costZAR" class="form-control" readonly />
+                                </div>
+                                <small class="text-muted">Auto-calculated in South African Rand</small>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle"></i>
+                            Service requests can only be created for <strong>Active</strong> contracts.
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> Create Service Request
+                            </button>
+                            <a asp-action="Details" asp-controller="Contracts" asp-route-id="@contract?.ContractId" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var currentRate = @currentRate;
+
+        $('#costUSD').on('input', function() {
+            var usd = parseFloat($(this).val()) || 0;
+            var zar = usd * currentRate;
+            $('#costZAR').val(zar.toFixed(2));
+        });
+
+        // Trigger on page load
+        $('#costUSD').trigger('input');
+    </script>
+}

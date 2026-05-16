@@ -1,0 +1,351 @@
+﻿@using GMLSSystem.Models.Enums
+
+@{
+    ViewData["Title"] = "Dashboard";
+    var userRole = ViewBag.UserRole as string ?? "User";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <h2 class="mb-0">Welcome back, @(ViewBag.UserName ?? "User")!</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card bg-info text-white">
+                <div class="card-body">
+                    <h3 class="mb-0">@(ViewBag.TotalContracts ?? 0)</h3>
+                    <p class="mb-0">Total Contracts</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card bg-success text-white">
+                <div class="card-body">
+                    <h3 class="mb-0">@(ViewBag.ActiveContracts ?? 0)</h3>
+                    <p class="mb-0">Active Contracts</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card bg-warning text-white">
+                <div class="card-body">
+                    <h3 class="mb-0">@(ViewBag.TotalRequests ?? 0)</h3>
+                    <p class="mb-0">Service Requests</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card bg-danger text-white">
+                <div class="card-body">
+                    <h3 class="mb-0">@(ViewBag.PendingRequests ?? 0)</h3>
+                    <p class="mb-0">Pending Requests</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (userRole == "Admin")
+    {
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-building"></i> Clients</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h2 class="text-primary">@(ViewBag.TotalClients ?? 0)</h2>
+                        <p class="text-muted">Registered Clients</p>
+                        <a asp-controller="Clients" asp-action="Index" class="btn btn-sm btn-outline-primary">Manage Clients</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-users"></i> Users</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h2 class="text-success">@(ViewBag.TotalUsers ?? 0)</h2>
+                        <p class="text-muted">System Users</p>
+                        <a asp-controller="Admin" asp-action="Users" class="btn btn-sm btn-outline-success">Manage Users</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <div class="card">
+                    <div class="card-header bg-warning text-white">
+                        <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Expiring Soon</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h2 class="text-warning">@(ViewBag.ExpiringContracts ?? 0)</h2>
+                        <p class="text-muted">Contracts expiring in 30 days</p>
+                        <a asp-controller="Contracts" asp-action="ExpiringSoon" class="btn btn-sm btn-outline-warning">View Details</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-history"></i> Recent Activity</h5>
+            </div>
+
+            <div class="card-body">
+                @if (ViewBag.RecentActivity != null && ViewBag.RecentActivity.Count > 0)
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Request #</th>
+                                    <th>Contract</th>
+                                    <th>Client</th>
+                                    <th>Amount (ZAR)</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @foreach (var request in ViewBag.RecentActivity)
+                                {
+                                    <tr>
+                                        <td>@request.RequestNumber</td>
+                                        <td>@request.Contract?.ContractNumber</td>
+                                        <td>@request.Contract?.ClientName</td>
+                                        <td>R @request.CostZAR.ToString("N2")</td>
+                                        <td>@request.RequestDate.ToString("yyyy-MM-dd")</td>
+                                        <td>
+                                            <span class="badge bg-@(request.Status == RequestStatus.Completed ? "success" : "warning")">
+                                                @request.Status
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted text-center">No recent activity</p>
+                }
+            </div>
+        </div>
+    }
+
+    @if (userRole == "Client")
+    {
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-file-contract"></i> My Contracts</h5>
+                    </div>
+
+                    <div class="card-body">
+                        @if (ViewBag.MyContracts != null && ViewBag.MyContracts.Count > 0)
+                        {
+                            <div class="list-group">
+                                @foreach (var contract in ViewBag.MyContracts)
+                                {
+                                    <a href="@Url.Action("Details", "Contracts", new { id = contract.ContractId })" class="list-group-item list-group-item-action">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>@contract.ContractNumber</strong>
+                                                <br />
+                                                <small>@contract.StartDate.ToShortDateString() - @contract.EndDate.ToShortDateString()</small>
+                                            </div>
+
+                                            <span class="badge bg-@(contract.Status == ContractStatus.Active ? "success" : "secondary")">
+                                                @contract.Status
+                                            </span>
+                                        </div>
+                                    </a>
+                                }
+                            </div>
+
+                            <div class="mt-3 text-center">
+                                <a asp-controller="Contracts" asp-action="MyContracts" class="btn btn-sm btn-outline-primary">
+                                    View All Contracts <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-4">
+                                <i class="fas fa-file-contract fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No contracts found.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-truck"></i> My Service Requests</h5>
+                    </div>
+
+                    <div class="card-body">
+                        @if (ViewBag.MyRequests != null && ViewBag.MyRequests.Count > 0)
+                        {
+                            <div class="list-group">
+                                @foreach (var request in ViewBag.MyRequests)
+                                {
+                                    var shortDescription = !string.IsNullOrEmpty(request.Description) && request.Description.Length > 50
+                                    ? request.Description.Substring(0, 50) + "..."
+                                    : request.Description;
+
+                                    <a href="@Url.Action("Details", "ServiceRequests", new { id = request.ServiceRequestId })" class="list-group-item list-group-item-action">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>@request.RequestNumber</strong>
+                                                <br />
+                                                <small>@shortDescription</small>
+                                            </div>
+
+                                            <div class="text-end">
+                                                <div class="small">R @request.CostZAR.ToString("N2")</div>
+
+                                                <span class="badge bg-@(request.Status == RequestStatus.Completed ? "success" :
+                                                                       request.Status == RequestStatus.InProgress ? "info" : "warning")">
+                                                    @request.Status
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                }
+                            </div>
+
+                            <div class="mt-3 text-center">
+                                <a asp-controller="ServiceRequests" asp-action="MyRequests" class="btn btn-sm btn-outline-success">
+                                    View All Requests <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-4">
+                                <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No service requests found.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-file-invoice-dollar"></i> My Recent Invoices</h5>
+                    </div>
+
+                    <div class="card-body">
+                        @if (ViewBag.MyInvoices != null && ViewBag.MyInvoices.Count > 0)
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Invoice #</th>
+                                            <th>Contract</th>
+                                            <th>Date</th>
+                                            <th>Due Date</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody>
+                                        @foreach (var invoice in ViewBag.MyInvoices)
+                                        {
+                                            <tr>
+                                                <td>@invoice.InvoiceNumber</td>
+                                                <td>@invoice.Contract?.ContractNumber</td>
+                                                <td>@invoice.InvoiceDate.ToShortDateString()</td>
+                                                <td>@invoice.DueDate.ToShortDateString()</td>
+                                                <td>
+                                                    @if (invoice.Currency == "USD")
+                                                    {
+                                                        <span>$@invoice.TotalAmount.ToString("N2")</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>R @invoice.TotalAmount.ToString("N2")</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-@(invoice.Status.ToString() == "Paid" ? "success" : "warning")">
+                                                        @invoice.Status
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <a asp-controller="Invoices" asp-action="Details" asp-route-id="@invoice.InvoiceId" class="btn btn-sm btn-info">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="mt-3 text-center">
+                                <a asp-controller="Invoices" asp-action="MyInvoices" class="btn btn-sm btn-outline-info">
+                                    View All Invoices <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-4">
+                                <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No invoices found.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .stat-card {
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .list-group-item:hover {
+        background-color: rgba(102, 126, 234, 0.05);
+    }
+
+    .card-header {
+        border-bottom: none;
+    }
+</style>

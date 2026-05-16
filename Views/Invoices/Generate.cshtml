@@ -1,0 +1,194 @@
+﻿@{
+    ViewData["Title"] = "Generate Invoice";
+    var contracts = ViewBag.Contracts as List<GMLSSystem.Models.Contract>;
+    var selectedContract = ViewBag.SelectedContract as GMLSSystem.Models.Contract;
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-file-invoice"></i> Generate Invoice</h4>
+                </div>
+                <div class="card-body">
+                    <form id="invoiceForm" method="post">
+                        <!-- Contract Selection -->
+                        <div class="mb-4">
+                            <label class="form-label">Select Contract *</label>
+                            <select id="contractId" name="contractId" class="form-select" required>
+                                <option value="">-- Select Contract --</option>
+                                @foreach (var contract in contracts)
+                                {
+                                    <option value="@contract.ContractId"
+                                            data-client="@contract.ClientName"
+                                            data-region="@contract.Region"
+                                            data-currency="@(contract.Region == "International" ? "USD" : "ZAR")"
+                                            selected="@(selectedContract != null && selectedContract.ContractId == contract.ContractId)">
+                                        @contract.ContractNumber - @contract.ClientName (@contract.Status)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Invoice Items -->
+                        <div class="mb-4">
+                            <label class="form-label">Invoice Items *</label>
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="itemsTable">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Description</th>
+                                            <th width="100">Quantity</th>
+                                            <th width="120">Unit Price</th>
+                                            <th width="100">Total</th>
+                                            <th width="50"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="item-row">
+                                            <td><input type="text" name="items[0].Description" class="form-control" required /></td>
+                                            <td><input type="number" name="items[0].Quantity" class="form-control quantity" step="0.01" required /></td>
+                                            <td><input type="number" name="items[0].UnitPrice" class="form-control unitprice" step="0.01" required /></td>
+                                            <td><span class="item-total">0.00</span></td>
+                                            <td><button type="button" class="btn btn-danger btn-sm remove-item"><i class="fas fa-trash"></i></button></td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="5">
+                                                <button type="button" id="addItem" class="btn btn-sm btn-secondary">
+                                                    <i class="fas fa-plus"></i> Add Item
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tax Rate and Due Date -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Tax Rate (%)</label>
+                                <input type="number" id="taxRate" name="taxRate" class="form-control" value="15" step="0.01" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Due Date</label>
+                                <input type="date" id="dueDate" name="dueDate" class="form-control" value="@DateTime.Now.AddDays(30).ToString("yyyy-MM-dd")" required />
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-3">
+                            <label class="form-label">Notes (Optional)</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Payment terms, bank details, etc."></textarea>
+                        </div>
+
+                        <!-- Summary -->
+                        <div class="alert alert-info">
+                            <div class="row">
+                                <div class="col-md-6 offset-md-6">
+                                    <table class="table table-sm table-borderless">
+                                        <tr>
+                                            <td><strong>Subtotal:</strong></td>
+                                            <td class="text-end" id="subtotalDisplay">0.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Tax (<span id="taxRateDisplay">15</span>%):</strong></td>
+                                            <td class="text-end" id="taxDisplay">0.00</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Total:</strong></td>
+                                            <td class="text-end" id="totalDisplay"><strong>0.00</strong></td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Generate Invoice
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let itemIndex = 1;
+        let currentCurrency = 'R';
+
+        function updateCurrencySymbol() {
+            var selectedOption = $('#contractId option:selected');
+            var region = selectedOption.data('region');
+            currentCurrency = region === 'International' ? '$' : 'R';
+            calculateTotals();
+        }
+
+        function calculateTotals() {
+            let subtotal = 0;
+            $('.item-row').each(function() {
+                const qty = parseFloat($(this).find('.quantity').val()) || 0;
+                const price = parseFloat($(this).find('.unitprice').val()) || 0;
+                const total = qty * price;
+                $(this).find('.item-total').text(total.toFixed(2));
+                subtotal += total;
+            });
+
+            const taxRate = parseFloat($('#taxRate').val()) || 0;
+            const tax = subtotal * (taxRate / 100);
+            const total = subtotal + tax;
+
+            $('#subtotalDisplay').text(`${currentCurrency} ${subtotal.toFixed(2)}`);
+            $('#taxDisplay').text(`${currentCurrency} ${tax.toFixed(2)}`);
+            $('#totalDisplay').text(`${currentCurrency} ${total.toFixed(2)}`);
+            $('#taxRateDisplay').text(taxRate);
+        }
+
+        $('#addItem').click(function() {
+            const newRow = `
+                <tr class="item-row">
+                    <td><input type="text" name="items[${itemIndex}].Description" class="form-control" required /></td>
+                    <td><input type="number" name="items[${itemIndex}].Quantity" class="form-control quantity" step="0.01" required /></td>
+                    <td><input type="number" name="items[${itemIndex}].UnitPrice" class="form-control unitprice" step="0.01" required /></td>
+                    <td><span class="item-total">0.00</span></td>
+                    <td><button type="button" class="btn btn-danger btn-sm remove-item"><i class="fas fa-trash"></i></button></td>
+                </tr>
+            `;
+            $('#itemsTable tbody').append(newRow);
+            itemIndex++;
+
+            $('.quantity, .unitprice, #taxRate').on('input', calculateTotals);
+            $('.remove-item').off('click').click(function() {
+                $(this).closest('tr').remove();
+                calculateTotals();
+            });
+        });
+
+        $(document).on('click', '.remove-item', function() {
+            $(this).closest('tr').remove();
+            calculateTotals();
+        });
+
+        $('.quantity, .unitprice, #taxRate').on('input', calculateTotals);
+
+        $('#contractId').change(function() {
+            updateCurrencySymbol();
+            const region = $(this).find(':selected').data('region');
+            if (region === 'International') {
+                $('#taxRate').val(0);
+                calculateTotals();
+            }
+        });
+
+        updateCurrencySymbol();
+        calculateTotals();
+    </script>
+}

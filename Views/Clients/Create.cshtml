@@ -1,0 +1,83 @@
+﻿@model GMLSSystem.Models.Client
+@{
+    ViewData["Title"] = "Create Client";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-plus-circle"></i> Create New Client</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Name" class="form-label">Company Name <span class="text-danger">*</span></label>
+                                <input asp-for="Name" class="form-control" placeholder="Enter company name" required />
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ContactEmail" class="form-label">Contact Email <span class="text-danger">*</span></label>
+                                <input asp-for="ContactEmail" type="email" class="form-control" placeholder="contact@company.com" required />
+                                <span asp-validation-for="ContactEmail" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="ContactPhone" class="form-label">Phone Number</label>
+                                <input asp-for="ContactPhone" class="form-control" placeholder="+27 12 345 6789" />
+                                <span asp-validation-for="ContactPhone" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Region" class="form-label">Region <span class="text-danger">*</span></label>
+                                <select asp-for="Region" class="form-select" required>
+                                    <option value="">-- Select Region --</option>
+                                    <option value="Johannesburg">Johannesburg</option>
+                                    <option value="Cape Town">Cape Town</option>
+                                    <option value="Durban">Durban</option>
+                                    <option value="International">International</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                                <span asp-validation-for="Region" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CreatedAt" class="form-label">Created Date</label>
+                                <input asp-for="CreatedAt" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd HH:mm")" readonly disabled />
+                                <small class="text-muted">Auto-generated on creation</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Address" class="form-label">Address</label>
+                            <textarea asp-for="Address" class="form-control" rows="2" placeholder="Street address, city, postal code"></textarea>
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Create Client
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to List
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

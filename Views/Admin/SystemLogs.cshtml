@@ -1,0 +1,124 @@
+﻿@model IEnumerable<GMLSSystem.Models.SystemLog>
+@{
+    ViewData["Title"] = "System Logs";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1><i class="fas fa-history"></i> System Logs</h1>
+            <p class="text-muted mb-0">View all system activity and events</p>
+        </div>
+        <form asp-action="ClearLogs" method="post" onsubmit="return confirm('Are you sure you want to clear all logs?');">
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash-alt"></i> Clear All Logs
+            </button>
+        </form>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Type</label>
+                    <select id="typeFilter" class="form-select">
+                        <option value="">All Types</option>
+                        <option value="Contract">Contracts</option>
+                        <option value="Service">Service Requests</option>
+                        <option value="Invoice">Invoices</option>
+                        <option value="User">Users</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Search</label>
+                    <input type="text" id="searchLogs" class="form-control" placeholder="Search logs..." />
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button id="clearFilters" class="btn btn-secondary w-100">
+                        <i class="fas fa-undo"></i> Clear Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="logsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                            <th>Type</th>
+                        </tr>
+                        
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model)
+                        {
+                            <tr data-type="@log.Type">
+                                <td>@log.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td>@log.User</td>
+                                <td>@log.Action</td>
+                                <td>@log.Details</td>
+                                <td>
+                                    <span class="badge bg-@(log.Type == "Contract" ? "info" : 
+                                                           log.Type == "Service" ? "warning" : 
+                                                           log.Type == "Invoice" ? "success" : "secondary")">
+                                        @log.Type
+                                    </span>
+                                </td>
+                             </tr>
+                        }
+                    </tbody>
+                 </table>
+            </div>
+
+            @if (!Model.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No logs found</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            function filterLogs() {
+                var searchTerm = $('#searchLogs').val().toLowerCase();
+                var typeValue = $('#typeFilter').val();
+                
+                $('#logsTable tbody tr').each(function() {
+                    var text = $(this).text().toLowerCase();
+                    var type = $(this).data('type');
+                    
+                    var matchesSearch = searchTerm === '' || text.includes(searchTerm);
+                    var matchesType = typeValue === '' || type === typeValue;
+                    
+                    if (matchesSearch && matchesType) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            }
+            
+            $('#searchLogs').on('keyup', filterLogs);
+            $('#typeFilter').on('change', filterLogs);
+            $('#clearFilters').on('click', function() {
+                $('#searchLogs').val('');
+                $('#typeFilter').val('');
+                filterLogs();
+            });
+        });
+    </script>
+}

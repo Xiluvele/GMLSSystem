@@ -20,4 +20,15 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.23" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include=".github\workflows\dotnet.yml" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<Compile Remove="GMLSSystem.Tests\**\*.cs" />
+		<Content Remove="GMLSSystem.Tests\**\*" />
+		<EmbeddedResource Remove="GMLSSystem.Tests\**\*" />
+		<None Remove="GMLSSystem.Tests\**\*" />
+	</ItemGroup>
+
 </Project>

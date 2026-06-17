@@ -1,411 +1,281 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using GMLSSystem.Data;
-using GMLSSystem.Models;
-using GMLSSystem.Models.Enums;
+using GMLSSystem.Shared.Models;
+using GMLSSystem.Services.Api;
 
 namespace GMLSSystem.Controllers
 {
     [Authorize]
     public class ContractsController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IApiClient _apiClient;
+        private readonly ILogger<ContractsController> _logger;
 
-        public ContractsController(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+        public ContractsController(IApiClient apiClient, ILogger<ContractsController> logger)
         {
-            _context = context;
-            _userManager = userManager;
+            _apiClient = apiClient;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
         {
-            var contracts = await GetContractsForCurrentUser();
-
-            return View(contracts);
-        }
-
-        [Authorize(Roles = "Admin,ContractManager")]
-        public IActionResult Create()
-        {
-            ViewBag.Clients = _context.Clients.ToList();
-            return View();
-        }
-
-        [HttpPost]
-        [Authorize(Roles = "Admin,ContractManager")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Contract contract, IFormFile signedAgreement)
-        {
-            if (ModelState.IsValid)
+            try
             {
-                if (signedAgreement != null && signedAgreement.Length > 0)
-                {
-                    var fileResult = await SaveSignedAgreementAsync(signedAgreement);
+                var response = await _apiClient.GetAsync<ApiResponse<List<ContractDto>>>("api/contracts");
 
-                    if (!fileResult.Success)
-                    {
-                        ModelState.AddModelError("signedAgreement", fileResult.ErrorMessage);
-                        ViewBag.Clients = _context.Clients.ToList();
-                        return View(contract);
-                    }
+                if (response.Success && response.Data != null)
+                    return View(response.Data);
 
-                    contract.SignedAgreementPath = fileResult.FilePath;
-                    contract.OriginalFileName = fileResult.OriginalFileName;
-                }
-
-                var client = await _context.Clients.FindAsync(contract.ClientId);
-
-                contract.ClientName = client?.Name;
-                contract.CreatedAt = DateTime.UtcNow;
-                contract.ContractNumber = GenerateContractNumber();
-
-                _context.Contracts.Add(contract);
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = $"Contract '{contract.ContractNumber}' created successfully!";
-                return RedirectToAction(nameof(Index));
+                TempData["Error"] = response.Message;
+                return View(new List<ContractDto>());
             }
-
-            ViewBag.Clients = _context.Clients.ToList();
-            return View(contract);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading contracts");
+                TempData["Error"] = "Could not load contracts. Please try again.";
+                return View(new List<ContractDto>());
+            }
         }
 
         public async Task<IActionResult> Details(int id)
         {
-            var contract = await _context.Contracts
-                .Include(c => c.Client)
-                .Include(c => c.ServiceRequests)
-                .FirstOrDefaultAsync(c => c.ContractId == id);
-
-            if (contract == null)
-                return NotFound();
-
-            var user = await _userManager.GetUserAsync(User);
-
-            if (User.IsInRole("Client"))
+            try
             {
-                if (user == null || !user.ClientId.HasValue || contract.ClientId != user.ClientId.Value)
-                    return Unauthorized();
-            }
+                var response = await _apiClient.GetAsync<ApiResponse<ContractDto>>($"api/contracts/{id}");
 
-            return View(contract);
-        }
+                if (response.Success && response.Data != null)
+                    return View(response.Data);
 
-        [Authorize(Roles = "Admin,ContractManager")]
-        public async Task<IActionResult> Edit(int id)
-        {
-            var contract = await _context.Contracts.FindAsync(id);
-
-            if (contract == null)
-                return NotFound();
-
-            ViewBag.Clients = _context.Clients.ToList();
-            return View(contract);
-        }
-
-        [HttpPost]
-        [Authorize(Roles = "Admin,ContractManager")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Contract contract)
-        {
-            if (id != contract.ContractId)
-                return NotFound();
-
-            if (ModelState.IsValid)
-            {
-                var existingContract = await _context.Contracts
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.ContractId == id);
-
-                if (existingContract == null)
-                    return NotFound();
-
-                contract.SignedAgreementPath = existingContract.SignedAgreementPath;
-                contract.OriginalFileName = existingContract.OriginalFileName;
-                contract.ContractNumber = existingContract.ContractNumber;
-                contract.CreatedAt = existingContract.CreatedAt;
-
-                var client = await _context.Clients.FindAsync(contract.ClientId);
-                contract.ClientName = client?.Name;
-
-                _context.Update(contract);
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = $"Contract '{contract.ContractNumber}' updated successfully!";
+                TempData["Error"] = response.Message;
                 return RedirectToAction(nameof(Index));
             }
-
-            ViewBag.Clients = _context.Clients.ToList();
-            return View(contract);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading contract {Id}", id);
+                TempData["Error"] = "Could not load contract details.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [Authorize(Roles = "Admin,ContractManager")]
-        public async Task<IActionResult> UpdateStatus(int id, ContractStatus status)
+        public async Task<IActionResult> Create()
         {
-            var contract = await _context.Contracts.FindAsync(id);
-
-            if (contract == null)
-                return NotFound();
-
-            contract.Status = status;
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = $"Contract status updated to {status}";
-            return RedirectToAction(nameof(Details), new { id });
+            await LoadClientsAsync();
+            return View(new CreateContractDto());
         }
 
-        [Authorize(Roles = "Admin,ContractManager,Client")]
         [HttpPost]
+        [Authorize(Roles = "Admin,ContractManager")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UploadSignedAgreement(int contractId, IFormFile signedAgreement)
+        public async Task<IActionResult> Create(CreateContractDto contract, IFormFile? signedAgreement)
         {
-            var contract = await _context.Contracts
-                .FirstOrDefaultAsync(c => c.ContractId == contractId);
-
-            if (contract == null)
-                return NotFound();
-
-            var user = await _userManager.GetUserAsync(User);
-
-            if (User.IsInRole("Client"))
+            if (!ModelState.IsValid)
             {
-                if (user == null || !user.ClientId.HasValue || contract.ClientId != user.ClientId.Value)
-                    return Unauthorized();
+                await LoadClientsAsync();
+                return View(contract);
             }
 
-            var fileResult = await SaveSignedAgreementAsync(signedAgreement);
-
-            if (!fileResult.Success)
+            try
             {
-                TempData["Error"] = fileResult.ErrorMessage;
-                return RedirectToAction(nameof(Details), new { id = contractId });
+                if (signedAgreement != null && signedAgreement.Length > 0)
+                {
+                    var extension = Path.GetExtension(signedAgreement.FileName).ToLower();
+
+                    if (extension != ".pdf")
+                    {
+                        ModelState.AddModelError("signedAgreement", "Only PDF files are allowed.");
+                        await LoadClientsAsync();
+                        return View(contract);
+                    }
+
+                    var uploadsFolder = Path.Combine(
+                        Directory.GetCurrentDirectory(),
+                        "wwwroot",
+                        "uploads",
+                        "contracts"
+                    );
+
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
+
+                    var safeFileName = Path.GetFileName(signedAgreement.FileName);
+                    var uniqueFileName = $"{Guid.NewGuid()}_{safeFileName}";
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await signedAgreement.CopyToAsync(stream);
+                    }
+
+                    contract.SignedAgreementPath = $"/uploads/contracts/{uniqueFileName}";
+                    contract.OriginalFileName = safeFileName;
+                }
+
+                var response = await _apiClient.PostAsync<ApiResponse<ContractDto>>("api/contracts", contract);
+
+                if (response.Success)
+                {
+                    TempData["Success"] = response.Message;
+                    return RedirectToAction(nameof(Index));
+                }
+
+                ModelState.AddModelError("", response.Message ?? "Could not create contract.");
+                await LoadClientsAsync();
+                return View(contract);
             }
-
-            contract.SignedAgreementPath = fileResult.FilePath;
-            contract.OriginalFileName = fileResult.OriginalFileName;
-
-            await _context.SaveChangesAsync();
-
-            TempData["Success"] = "Signed agreement uploaded successfully.";
-            return RedirectToAction(nameof(Details), new { id = contractId });
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating contract");
+                ModelState.AddModelError("", "Could not create contract. Please try again.");
+                await LoadClientsAsync();
+                return View(contract);
+            }
         }
 
-        public async Task<IActionResult> Search(DateTime? startDate, DateTime? endDate, ContractStatus? status)
+        [HttpPost]
+        [Authorize(Roles = "Admin,ContractManager")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateStatus(int id, string status)
         {
-            var query = _context.Contracts
-                .Include(c => c.Client)
-                .AsQueryable();
-
-            var user = await _userManager.GetUserAsync(User);
-
-            if (User.IsInRole("Client"))
+            try
             {
-                if (user == null || !user.ClientId.HasValue)
-                    return Unauthorized();
+                var updateDto = new UpdateContractStatusDto
+                {
+                    Status = status
+                };
 
-                query = query.Where(c => c.ClientId == user.ClientId.Value);
+                var response = await _apiClient.PatchAsync<ApiResponse<object>>(
+                    $"api/contracts/{id}/status",
+                    updateDto
+                );
+
+                TempData[response.Success ? "Success" : "Error"] = response.Message;
+
+                return RedirectToAction(nameof(Details), new { id });
             }
-
-            if (startDate.HasValue)
-                query = query.Where(c => c.StartDate >= startDate.Value);
-
-            if (endDate.HasValue)
-                query = query.Where(c => c.EndDate <= endDate.Value);
-
-            if (status.HasValue)
-                query = query.Where(c => c.Status == status.Value);
-
-            var contracts = await query
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
-
-            return PartialView("_ContractList", contracts);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating contract status");
+                TempData["Error"] = "Could not update contract status.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
         }
 
-        public async Task<IActionResult> MyContracts()
+        public async Task<IActionResult> Search(DateTime? startDate, DateTime? endDate, string? status)
         {
-            var user = await _userManager.GetUserAsync(User);
-
-            if (user == null || !user.ClientId.HasValue)
+            try
             {
-                TempData["Error"] = "Your account is not linked to a client profile.";
-                return RedirectToAction("Dashboard", "Home");
+                var query = new List<string>();
+
+                if (startDate.HasValue)
+                    query.Add($"startDate={startDate.Value:yyyy-MM-dd}");
+
+                if (endDate.HasValue)
+                    query.Add($"endDate={endDate.Value:yyyy-MM-dd}");
+
+                if (!string.IsNullOrWhiteSpace(status))
+                    query.Add($"status={Uri.EscapeDataString(status)}");
+
+                var queryString = query.Any() ? "?" + string.Join("&", query) : "";
+
+                var response = await _apiClient.GetAsync<ApiResponse<List<ContractDto>>>(
+                    $"api/contracts{queryString}"
+                );
+
+                if (response.Success && response.Data != null)
+                    return PartialView("_ContractList", response.Data);
+
+                return PartialView("_ContractList", new List<ContractDto>());
             }
-
-            var contracts = await _context.Contracts
-                .Include(c => c.Client)
-                .Where(c => c.ClientId == user.ClientId.Value)
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
-
-            return View("Index", contracts);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching contracts");
+                return PartialView("_ContractList", new List<ContractDto>());
+            }
         }
 
         public async Task<IActionResult> ActiveContracts()
         {
-            var contracts = await GetContractsByStatusForCurrentUser(ContractStatus.Active);
-            ViewBag.FilterType = "Active Contracts";
-
-            return View("Index", contracts);
-        }
-
-        public async Task<IActionResult> ExpiringSoon()
-        {
-            var expiringThreshold = DateTime.UtcNow.AddDays(30);
-
-            var query = _context.Contracts
-                .Include(c => c.Client)
-                .Where(c => c.Status == ContractStatus.Active && c.EndDate <= expiringThreshold);
-
-            var user = await _userManager.GetUserAsync(User);
-
-            if (User.IsInRole("Client"))
-            {
-                if (user == null || !user.ClientId.HasValue)
-                    return Unauthorized();
-
-                query = query.Where(c => c.ClientId == user.ClientId.Value);
-            }
-
-            var contracts = await query
-                .OrderBy(c => c.EndDate)
-                .ToListAsync();
-
-            ViewBag.FilterType = "Contracts Expiring Soon (Next 30 Days)";
-            return View("Index", contracts);
+            return await FilterByStatus("Active", "Active Contracts");
         }
 
         public async Task<IActionResult> ExpiredContracts()
         {
-            var contracts = await GetContractsByStatusForCurrentUser(ContractStatus.Expired);
-            ViewBag.FilterType = "Expired Contracts";
-
-            return View("Index", contracts);
+            return await FilterByStatus("Expired", "Expired Contracts");
         }
 
         public async Task<IActionResult> DraftContracts()
         {
-            var contracts = await GetContractsByStatusForCurrentUser(ContractStatus.Draft);
-            ViewBag.FilterType = "Draft Contracts";
-
-            return View("Index", contracts);
+            return await FilterByStatus("Draft", "Draft Contracts");
         }
 
         public async Task<IActionResult> OnHoldContracts()
         {
-            var contracts = await GetContractsByStatusForCurrentUser(ContractStatus.OnHold);
-            ViewBag.FilterType = "On Hold Contracts";
-
-            return View("Index", contracts);
+            return await FilterByStatus("OnHold", "On Hold Contracts");
         }
 
-        private async Task<List<Contract>> GetContractsForCurrentUser()
+        public async Task<IActionResult> ExpiringSoon()
         {
-            var user = await _userManager.GetUserAsync(User);
-
-            var query = _context.Contracts
-                .Include(c => c.Client)
-                .AsQueryable();
-
-            if (User.IsInRole("Client"))
+            try
             {
-                if (user == null || !user.ClientId.HasValue)
-                    return new List<Contract>();
+                var today = DateTime.UtcNow;
+                var next30Days = today.AddDays(30);
 
-                query = query.Where(c => c.ClientId == user.ClientId.Value);
+                var response = await _apiClient.GetAsync<ApiResponse<List<ContractDto>>>(
+                    $"api/contracts?startDate={today:yyyy-MM-dd}&endDate={next30Days:yyyy-MM-dd}&status=Active"
+                );
+
+                ViewBag.FilterType = "Contracts Expiring Soon (Next 30 Days)";
+
+                if (response.Success && response.Data != null)
+                    return View("Index", response.Data);
+
+                return View("Index", new List<ContractDto>());
             }
-
-            return await query
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading expiring contracts");
+                return View("Index", new List<ContractDto>());
+            }
         }
 
-        private async Task<List<Contract>> GetContractsByStatusForCurrentUser(ContractStatus status)
+        private async Task<IActionResult> FilterByStatus(string status, string filterName)
         {
-            var user = await _userManager.GetUserAsync(User);
-
-            var query = _context.Contracts
-                .Include(c => c.Client)
-                .Where(c => c.Status == status);
-
-            if (User.IsInRole("Client"))
+            try
             {
-                if (user == null || !user.ClientId.HasValue)
-                    return new List<Contract>();
+                var response = await _apiClient.GetAsync<ApiResponse<List<ContractDto>>>(
+                    $"api/contracts?status={status}"
+                );
 
-                query = query.Where(c => c.ClientId == user.ClientId.Value);
+                ViewBag.FilterType = filterName;
+
+                if (response.Success && response.Data != null)
+                    return View("Index", response.Data);
+
+                return View("Index", new List<ContractDto>());
             }
-
-            return await query
-                .OrderByDescending(c => c.CreatedAt)
-                .ToListAsync();
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error filtering contracts by status {Status}", status);
+                return View("Index", new List<ContractDto>());
+            }
         }
 
-        private async Task<FileUploadResult> SaveSignedAgreementAsync(IFormFile signedAgreement)
+        private async Task LoadClientsAsync()
         {
-            if (signedAgreement == null || signedAgreement.Length == 0)
+            try
             {
-                return new FileUploadResult
-                {
-                    Success = false,
-                    ErrorMessage = "Please select a PDF file."
-                };
+                var response = await _apiClient.GetAsync<ApiResponse<List<ClientDto>>>("api/clients");
+
+                ViewBag.Clients = response.Success && response.Data != null
+                    ? response.Data
+                    : new List<ClientDto>();
             }
-
-            var extension = Path.GetExtension(signedAgreement.FileName).ToLower();
-
-            if (extension != ".pdf")
+            catch (Exception ex)
             {
-                return new FileUploadResult
-                {
-                    Success = false,
-                    ErrorMessage = "Only PDF files are allowed."
-                };
+                _logger.LogError(ex, "Error loading clients");
+                ViewBag.Clients = new List<ClientDto>();
             }
-
-            var uploadsFolder = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot",
-                "uploads",
-                "contracts"
-            );
-
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
-
-            var safeFileName = Path.GetFileName(signedAgreement.FileName);
-            var uniqueFileName = $"{Guid.NewGuid()}_{safeFileName}";
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await signedAgreement.CopyToAsync(stream);
-            }
-
-            return new FileUploadResult
-            {
-                Success = true,
-                FilePath = $"/uploads/contracts/{uniqueFileName}",
-                OriginalFileName = safeFileName
-            };
-        }
-
-        private string GenerateContractNumber()
-        {
-            return $"CTR-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 8).ToUpper()}";
-        }
-
-        private class FileUploadResult
-        {
-            public bool Success { get; set; }
-            public string? FilePath { get; set; }
-            public string? OriginalFileName { get; set; }
-            public string? ErrorMessage { get; set; }
         }
     }
 }

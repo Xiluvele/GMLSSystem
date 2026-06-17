@@ -5,27 +5,30 @@ using System.Threading.Tasks;
 using GMLSSystem.Models;
 using GMLSSystem.Data;
 using GMLSSystem.ViewModels;
+using GMLSSystem.Services.Api;  
 
 namespace GMLSSystem.Controllers
 {
     public class AccountController : Controller
     {
-        // Use Identity's built-in services - NOT custom AuthService
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ApplicationDbContext _context;
+        private readonly IApiClient _apiClient;  
 
         public AccountController(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             RoleManager<IdentityRole> roleManager,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IApiClient apiClient)  
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
             _context = context;
+            _apiClient = apiClient;  
         }
 
         [HttpGet]
@@ -44,17 +47,23 @@ namespace GMLSSystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                // Use Identity's SignInManager - NOT custom AuthService
-                var result = await _signInManager.PasswordSignInAsync(username, password, true, lockoutOnFailure: false);
+                // STEP 1: Authenticate via API to get JWT token
+                var apiResult = await _apiClient.LoginAsync(username, password);
 
-                if (result.Succeeded)
+                if (apiResult.Success)
                 {
-                    // Update last login time using Identity user
+                    // Store JWT token in session
+                    HttpContext.Session.SetString("JWToken", apiResult.Data.Token);
+
+                    // STEP 2: Also sign in with Identity for MVC (keeps session management)
                     var user = await _userManager.FindByNameAsync(username);
                     if (user != null)
                     {
                         user.LastLoginAt = System.DateTime.UtcNow;
                         await _userManager.UpdateAsync(user);
+
+                        // Sign in with Identity
+                        await _signInManager.SignInAsync(user, isPersistent: true);
                     }
 
                     if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -62,14 +71,34 @@ namespace GMLSSystem.Controllers
 
                     return RedirectToAction("Dashboard", "Home");
                 }
-
-                if (result.IsLockedOut)
-                {
-                    ModelState.AddModelError(string.Empty, "Account locked out. Please try again later.");
-                }
                 else
                 {
-                    ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    // If API login fails, fallback to Identity login
+                    var result = await _signInManager.PasswordSignInAsync(username, password, true, lockoutOnFailure: false);
+
+                    if (result.Succeeded)
+                    {
+                        var user = await _userManager.FindByNameAsync(username);
+                        if (user != null)
+                        {
+                            user.LastLoginAt = System.DateTime.UtcNow;
+                            await _userManager.UpdateAsync(user);
+                        }
+
+                        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                            return Redirect(returnUrl);
+
+                        return RedirectToAction("Dashboard", "Home");
+                    }
+
+                    if (result.IsLockedOut)
+                    {
+                        ModelState.AddModelError(string.Empty, "Account locked out. Please try again later.");
+                    }
+                    else
+                    {
+                        ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                    }
                 }
             }
 
@@ -80,8 +109,13 @@ namespace GMLSSystem.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
+            // Clear JWT token
+            _apiClient.ClearToken();
+            HttpContext.Session.Remove("JWToken");
 
+            // Sign out from Identity
             await _signInManager.SignOutAsync();
+
             return RedirectToAction("Index", "Home");
         }
 
@@ -151,7 +185,6 @@ namespace GMLSSystem.Controllers
 
             return View(model);
         }
-
 
         [HttpGet]
         public IActionResult ChangePassword()
@@ -231,7 +264,6 @@ namespace GMLSSystem.Controllers
 
             return View(model);
         }
-
     }
 
     public class ChangePasswordViewModel

@@ -1,16 +1,25 @@
-﻿@using Microsoft.AspNetCore.Mvc.Rendering
-@using GMLSSystem.Models.Enums
-@model GMLSSystem.Models.Contract
+﻿@model GMLSSystem.Shared.Models.ContractDto
 
 @{
     ViewData["Title"] = "Contract Details";
+
+    var statusClass = Model.Status switch
+    {
+        "Active" => "success",
+        "Draft" => "warning",
+        "Expired" => "danger",
+        "OnHold" => "secondary",
+        _ => "secondary"
+    };
+
+    var canCreateServiceRequest = Model.Status == "Active";
+    var isActive = Model.Status == "Active";
 }
 
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-8">
 
-            <!-- Contract Details -->
             <div class="card mb-4">
                 <div class="card-header bg-secondary text-white">
                     <h4 class="mb-0">
@@ -19,14 +28,10 @@
                 </div>
 
                 <div class="card-body">
-
                     <div class="row">
 
-                        <!-- LEFT SIDE -->
                         <div class="col-md-6">
-
                             <dl class="row">
-
                                 <dt class="col-sm-4">Contract #</dt>
                                 <dd class="col-sm-8">@Model.ContractNumber</dd>
 
@@ -34,44 +39,20 @@
                                 <dd class="col-sm-8">@Model.ClientName</dd>
 
                                 <dt class="col-sm-4">Start Date</dt>
-                                <dd class="col-sm-8">
-                                    @Model.StartDate.ToShortDateString()
-                                </dd>
+                                <dd class="col-sm-8">@Model.StartDate.ToShortDateString()</dd>
 
                                 <dt class="col-sm-4">End Date</dt>
-                                <dd class="col-sm-8">
-                                    @Model.EndDate.ToShortDateString()
-                                </dd>
+                                <dd class="col-sm-8">@Model.EndDate.ToShortDateString()</dd>
 
                                 <dt class="col-sm-4">Status</dt>
                                 <dd class="col-sm-8">
-
-                                    @{
-                                        var statusClass = Model.Status switch
-                                        {
-                                            ContractStatus.Active => "success",
-                                            ContractStatus.Draft => "warning",
-                                            ContractStatus.Expired => "danger",
-                                            ContractStatus.OnHold => "secondary",
-                                            _ => "secondary"
-                                        };
-                                    }
-
-                                    <span class="badge bg-@statusClass">
-                                        @Model.Status
-                                    </span>
-
+                                    <span class="badge bg-@statusClass">@Model.Status</span>
                                 </dd>
-
                             </dl>
-
                         </div>
 
-                        <!-- RIGHT SIDE -->
                         <div class="col-md-6">
-
                             <dl class="row">
-
                                 <dt class="col-sm-4">Service Level</dt>
                                 <dd class="col-sm-8">@Model.ServiceLevel</dd>
 
@@ -79,236 +60,117 @@
                                 <dd class="col-sm-8">@Model.Region</dd>
 
                                 <dt class="col-sm-4">Created</dt>
-                                <dd class="col-sm-8">
-                                    @Model.CreatedAt.ToShortDateString()
-                                </dd>
+                                <dd class="col-sm-8">@Model.CreatedAt.ToShortDateString()</dd>
 
                                 <dt class="col-sm-4">Signed Agreement</dt>
-
                                 <dd class="col-sm-8">
-
-                                    <!-- VIEW EXISTING PDF -->
                                     @if (!string.IsNullOrEmpty(Model.SignedAgreementPath))
                                     {
                                         <div class="mb-2">
-
                                             <a href="@Model.SignedAgreementPath"
                                                target="_blank"
                                                class="btn btn-sm btn-danger">
-
-                                                <i class="fas fa-file-pdf"></i>
-                                                View PDF
-
+                                                <i class="fas fa-file-pdf"></i> View PDF
                                             </a>
-
                                         </div>
 
-                                        <small class="text-muted">
-
-                                            @Model.OriginalFileName
-
-                                        </small>
+                                        <small class="text-muted">@Model.OriginalFileName</small>
                                     }
                                     else
                                     {
-                                        <span class="text-muted">
-                                            No file uploaded
-                                        </span>
+                                        <span class="text-muted">No file uploaded</span>
                                     }
-
-                                    <!-- UPLOAD FORM -->
-                                    @if (User.IsInRole("Admin") ||
-                                    User.IsInRole("ContractManager") ||
-                                    User.IsInRole("Client"))
-                                    {
-                                        <hr />
-
-                                        <form asp-action="UploadSignedAgreement"
-                                              asp-route-contractId="@Model.ContractId"
-                                              method="post"
-                                              enctype="multipart/form-data">
-
-                                            @Html.AntiForgeryToken()
-
-                                            <div class="mb-2">
-
-                                                <label class="form-label fw-bold">
-
-                                                    Upload Signed Agreement (PDF)
-
-                                                </label>
-
-                                                <input type="file"
-                                                       name="signedAgreement"
-                                                       accept=".pdf"
-                                                       class="form-control"
-                                                       required />
-
-                                            </div>
-
-                                            <button type="submit"
-                                                    class="btn btn-primary btn-sm">
-
-                                                <i class="fas fa-upload"></i>
-                                                Upload PDF
-
-                                            </button>
-
-                                        </form>
-                                    }
-
                                 </dd>
-
                             </dl>
-
                         </div>
-
                     </div>
 
-                    <!-- DESCRIPTION -->
                     @if (!string.IsNullOrEmpty(Model.Description))
                     {
                         <div class="mt-3">
-
                             <h6>Description</h6>
-
                             <p>@Model.Description</p>
-
                         </div>
                     }
-
                 </div>
 
-                <!-- FOOTER -->
                 <div class="card-footer">
-
-                    @if (User.IsInRole("Admin") ||
-                    User.IsInRole("ContractManager"))
+                    @if (User.IsInRole("Admin") || User.IsInRole("ContractManager"))
                     {
-                        <a asp-action="Edit"
-                           asp-route-id="@Model.ContractId"
-                           class="btn btn-warning">
-
-                            <i class="fas fa-edit"></i> Edit
-
-                        </a>
-
                         <button type="button"
                                 class="btn btn-info"
                                 data-bs-toggle="modal"
                                 data-bs-target="#statusModal">
-
-                            <i class="fas fa-exchange-alt"></i>
-                            Update Status
-
+                            <i class="fas fa-exchange-alt"></i> Update Status
                         </button>
                     }
 
-                    @if (User.IsInRole("Admin") ||
-                    User.IsInRole("LogisticsCoordinator"))
+                    @if ((User.IsInRole("Admin") || User.IsInRole("LogisticsCoordinator")) && canCreateServiceRequest)
                     {
-                        if (Model.canCreateServiceRequest())
-                        {
-                            <a asp-controller="ServiceRequests"
-                               asp-action="Create"
-                               asp-route-contractId="@Model.ContractId"
-                               class="btn btn-success">
-
-                                <i class="fas fa-plus"></i>
-                                Create Service Request
-
-                            </a>
-                        }
+                        <a asp-controller="ServiceRequests"
+                           asp-action="Create"
+                           asp-route-contractId="@Model.ContractId"
+                           class="btn btn-success">
+                            <i class="fas fa-plus"></i> Create Service Request
+                        </a>
                     }
 
-                    <a asp-action="Index"
-                       class="btn btn-secondary">
-
+                    <a asp-action="Index" class="btn btn-secondary">
                         Back to List
-
                     </a>
-
                 </div>
-
             </div>
-
         </div>
 
-        <!-- RIGHT SIDEBAR -->
         <div class="col-md-4">
-
             <div class="card mb-4">
-
                 <div class="card-header bg-secondary text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-chart-line"></i>
-                        Contract Status
+                        <i class="fas fa-chart-line"></i> Contract Status
                     </h5>
                 </div>
 
                 <div class="card-body text-center">
-
                     <h2 class="mb-0">
-
-                        <span class="badge bg-@statusClass"
-                              style="font-size: 1.5rem;">
-
+                        <span class="badge bg-@statusClass" style="font-size: 1.5rem;">
                             @Model.Status
-
                         </span>
-
                     </h2>
 
                     <hr />
 
                     <p class="mb-0">
-
-                        @if (Model.IsActive())
+                        @if (isActive)
                         {
                             <span class="text-success">
-                                <i class="fas fa-check-circle"></i>
-                                Contract is Active
+                                <i class="fas fa-check-circle"></i> Contract is Active
                             </span>
                         }
                         else
                         {
                             <span class="text-danger">
-                                <i class="fas fa-exclamation-circle"></i>
-                                Contract is Inactive
+                                <i class="fas fa-exclamation-circle"></i> Contract is Inactive
                             </span>
                         }
-
                     </p>
-
                 </div>
-
             </div>
-
         </div>
-
     </div>
 
-    <!-- SERVICE REQUESTS -->
     <div class="card">
-
         <div class="card-header">
             <h5>
-                <i class="fas fa-truck"></i>
-                Service Requests
+                <i class="fas fa-truck"></i> Service Requests
             </h5>
         </div>
 
         <div class="card-body">
-
-            @if (Model.ServiceRequests != null &&
-            Model.ServiceRequests.Any())
+            @if (Model.ServiceRequests != null && Model.ServiceRequests.Any())
             {
                 <div class="table-responsive">
-
                     <table class="table table-hover">
-
-                        <thead>
-
+                        <thead class="table-light">
                             <tr>
                                 <th>Request #</th>
                                 <th>Description</th>
@@ -318,65 +180,45 @@
                                 <th>Status</th>
                                 <th>Actions</th>
                             </tr>
-
                         </thead>
 
                         <tbody>
-
-                            @foreach (var request in
-                           Model.ServiceRequests
-                           .OrderByDescending(r => r.RequestDate))
+                            @foreach (var request in Model.ServiceRequests.OrderByDescending(r => r.RequestDate))
                             {
+                                var requestStatusClass = request.Status switch
+                                {
+                                    "Pending" => "warning",
+                                    "InProgress" => "info",
+                                    "Completed" => "success",
+                                    "Cancelled" => "danger",
+                                    _ => "secondary"
+                                };
+
                                 <tr>
-
-                                    <td>@request.RequestNumber</td>
-
+                                    <td>
+                                        <strong>@request.RequestNumber</strong>
+                                    </td>
                                     <td>@request.Description</td>
-
+                                    <td>$@request.CostUSD.ToString("N2")</td>
+                                    <td>R @request.CostZAR.ToString("N2")</td>
+                                    <td>@request.RequestDate.ToString("yyyy-MM-dd")</td>
                                     <td>
-                                        $@request.CostUSD.ToString("N2")
-                                    </td>
-
-                                    <td>
-                                        R @request.CostZAR.ToString("N2")
-                                    </td>
-
-                                    <td>
-                                        @request.RequestDate
-                                    </td>
-
-                                    <td>
-
-                                        <span class="badge bg-@(request.Status.ToString() == "Completed"
-                                            ? "success"
-                                            : "warning")">
-
+                                        <span class="badge bg-@requestStatusClass">
                                             @request.Status
-
                                         </span>
-
                                     </td>
-
                                     <td>
-
                                         <a asp-controller="ServiceRequests"
                                            asp-action="Details"
                                            asp-route-id="@request.ServiceRequestId"
-                                           class="btn btn-sm btn-info">
-
+                                           class="btn btn-sm btn-info text-white">
                                             <i class="fas fa-eye"></i>
-
                                         </a>
-
                                     </td>
-
                                 </tr>
                             }
-
                         </tbody>
-
                     </table>
-
                 </div>
             }
             else
@@ -386,78 +228,60 @@
                 </p>
             }
 
+            @if (Model.Status == "Active")
+            {
+                <div class="text-center mt-3">
+                    <a asp-controller="ServiceRequests"
+                       asp-action="Create"
+                       asp-route-contractId="@Model.ContractId"
+                       class="btn btn-success">
+                        <i class="fas fa-plus"></i> Create Service Request
+                    </a>
+                </div>
+            }
         </div>
-
     </div>
-
 </div>
 
-<!-- STATUS UPDATE MODAL -->
-<div class="modal fade"
-     id="statusModal"
-     tabindex="-1">
-
+<div class="modal fade" id="statusModal" tabindex="-1">
     <div class="modal-dialog">
-
         <div class="modal-content">
+            <form asp-action="UpdateStatus" asp-route-id="@Model.ContractId" method="post">
+                @Html.AntiForgeryToken()
 
-            <div class="modal-header">
-
-                <h5 class="modal-title">
-                    Update Contract Status
-                </h5>
-
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal">
-                </button>
-
-            </div>
-
-            <form asp-action="UpdateStatus"
-                  asp-route-id="@Model.ContractId"
-                  method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Contract Status</h5>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+                </div>
 
                 <div class="modal-body">
-
                     <div class="mb-3">
+                        <label class="form-label">Status</label>
 
-                        <label asp-for="Status"
-                               class="form-label">
-                        </label>
-
-                        <select asp-for="Status"
-                                asp-items="Html.GetEnumSelectList<ContractStatus>()"
-                                class="form-select">
+                        <select name="status" class="form-select">
+                            <option value="Draft" selected="@(Model.Status == "Draft")">Draft</option>
+                            <option value="Active" selected="@(Model.Status == "Active")">Active</option>
+                            <option value="Expired" selected="@(Model.Status == "Expired")">Expired</option>
+                            <option value="OnHold" selected="@(Model.Status == "OnHold")">On Hold</option>
                         </select>
-
                     </div>
-
                 </div>
 
                 <div class="modal-footer">
-
                     <button type="button"
                             class="btn btn-secondary"
                             data-bs-dismiss="modal">
-
                         Cancel
-
                     </button>
 
-                    <button type="submit"
-                            class="btn btn-primary">
-
+                    <button type="submit" class="btn btn-primary">
                         Update Status
-
                     </button>
-
                 </div>
-
             </form>
-
         </div>
-
     </div>
-
 </div>

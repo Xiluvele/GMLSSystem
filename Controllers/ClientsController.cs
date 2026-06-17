@@ -1,34 +1,40 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using GMLSSystem.Data;
-using GMLSSystem.Models;
+using GMLSSystem.Shared.Models;
+using GMLSSystem.Services.Api;
 
 namespace GMLSSystem.Controllers
 {
     [Authorize(Roles = "Admin")]
     public class ClientsController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IApiClient _apiClient;
+        private readonly ILogger<ClientsController> _logger;
 
-        public ClientsController(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+        public ClientsController(IApiClient apiClient, ILogger<ClientsController> logger)
         {
-            _context = context;
-            _userManager = userManager;
+            _apiClient = apiClient;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
         {
-            var clients = await _context.Clients
-                .Include(c => c.Contracts)
-                .OrderBy(c => c.Name)
-                .ToListAsync();
-
-            return View(clients);
+            try
+            {
+                var response = await _apiClient.GetAsync<ApiResponse<List<ClientDto>>>("api/clients");
+                if (response.Success)
+                {
+                    return View(response.Data);
+                }
+                TempData["Error"] = response.Message;
+                return View(new List<ClientDto>());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading clients");
+                TempData["Error"] = "Could not load clients.";
+                return View(new List<ClientDto>());
+            }
         }
 
         public IActionResult Create()
@@ -38,117 +44,112 @@ namespace GMLSSystem.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Client client)
+        public async Task<IActionResult> Create(ClientDto client)
         {
-            if (ModelState.IsValid)
+            try
             {
-                client.CreatedAt = DateTime.UtcNow;
-
-                _context.Clients.Add(client);
-                await _context.SaveChangesAsync();
-
-                await LinkUserToClientAsync(client);
-
-                TempData["Success"] = $"Client '{client.Name}' created successfully!";
-                return RedirectToAction(nameof(Index));
+                var response = await _apiClient.PostAsync<ApiResponse<ClientDto>>("api/clients", client);
+                if (response.Success)
+                {
+                    TempData["Success"] = response.Message;
+                    return RedirectToAction(nameof(Index));
+                }
+                ModelState.AddModelError("", response.Message);
+                return View(client);
             }
-
-            return View(client);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating client");
+                ModelState.AddModelError("", "Could not create client.");
+                return View(client);
+            }
         }
 
         public async Task<IActionResult> Edit(int id)
         {
-            var client = await _context.Clients.FindAsync(id);
-
-            if (client == null)
-                return NotFound();
-
-            return View(client);
+            try
+            {
+                var response = await _apiClient.GetAsync<ApiResponse<ClientDto>>($"api/clients/{id}");
+                if (response.Success)
+                {
+                    return View(response.Data);
+                }
+                TempData["Error"] = response.Message;
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading client for edit");
+                TempData["Error"] = "Could not load client.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Client client)
+        public async Task<IActionResult> Edit(int id, ClientDto client)
         {
-            if (id != client.ClientId)
-                return NotFound();
-
-            if (ModelState.IsValid)
+            try
             {
-                _context.Update(client);
-                await _context.SaveChangesAsync();
+                var response = await _apiClient.PutAsync<ApiResponse<ClientDto>>($"api/clients/{id}", client);
+                if (response.Success)
+                {
+                    TempData["Success"] = response.Message;
+                    return RedirectToAction(nameof(Index));
+                }
+                ModelState.AddModelError("", response.Message);
+                return View(client);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating client");
+                ModelState.AddModelError("", "Could not update client.");
+                return View(client);
+            }
+        }
 
-                await LinkUserToClientAsync(client);
-
-                TempData["Success"] = $"Client '{client.Name}' updated successfully!";
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var response = await _apiClient.GetAsync<ApiResponse<ClientDto>>($"api/clients/{id}");
+                if (response.Success)
+                {
+                    return View(response.Data);
+                }
+                TempData["Error"] = response.Message;
                 return RedirectToAction(nameof(Index));
             }
-
-            return View(client);
-        }
-
-        public async Task<IActionResult> Details(int id)
-        {
-            var client = await _context.Clients
-                .Include(c => c.Contracts)
-                .FirstOrDefaultAsync(c => c.ClientId == id);
-
-            if (client == null)
-                return NotFound();
-
-            return View(client);
-        }
-
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
-                return NotFound();
-
-            var client = await _context.Clients
-                .Include(c => c.Contracts)
-                .FirstOrDefaultAsync(m => m.ClientId == id);
-
-            if (client == null)
-                return NotFound();
-
-            return View(client);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading client for delete");
+                TempData["Error"] = "Could not load client.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var client = await _context.Clients
-                .Include(c => c.Contracts)
-                .FirstOrDefaultAsync(c => c.ClientId == id);
-
-            if (client != null)
+            try
             {
-                _context.Clients.Remove(client);
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = $"Client '{client.Name}' deleted successfully!";
+                var success = await _apiClient.DeleteAsync($"api/clients/{id}");
+                if (success)
+                {
+                    TempData["Success"] = "Client deleted successfully!";
+                }
+                else
+                {
+                    TempData["Error"] = "Could not delete client.";
+                }
+                return RedirectToAction(nameof(Index));
             }
-
-            return RedirectToAction(nameof(Index));
-        }
-
-        private async Task LinkUserToClientAsync(Client client)
-        {
-            if (string.IsNullOrWhiteSpace(client.ContactEmail))
-                return;
-
-            var user = await _userManager.FindByEmailAsync(client.ContactEmail);
-
-            if (user == null)
-                return;
-
-            user.ClientId = client.ClientId;
-            await _userManager.UpdateAsync(user);
-
-            if (!await _userManager.IsInRoleAsync(user, "Client"))
+            catch (Exception ex)
             {
-                await _userManager.AddToRoleAsync(user, "Client");
+                _logger.LogError(ex, "Error deleting client");
+                TempData["Error"] = "Could not delete client.";
+                return RedirectToAction(nameof(Index));
             }
         }
     }

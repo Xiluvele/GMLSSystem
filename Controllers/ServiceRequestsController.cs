@@ -1,214 +1,274 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using GMLSSystem.Data;
 using GMLSSystem.Models;
-using GMLSSystem.Models.Enums;  // Make sure this is included for RequestStatus
-using GMLSSystem.Services;
+using GMLSSystem.Services.Api;
+using GMLSSystem.Shared.Models;
 
 namespace GMLSSystem.Controllers
 {
     [Authorize]
     public class ServiceRequestsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApiClient _apiClient;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ICurrencyService _currencyService;
+        private readonly ILogger<ServiceRequestsController> _logger;
 
         public ServiceRequestsController(
-            ApplicationDbContext context,
+            IApiClient apiClient,
             UserManager<ApplicationUser> userManager,
-            ICurrencyService currencyService)
+            ILogger<ServiceRequestsController> logger)
         {
-            _context = context;
+            _apiClient = apiClient;
             _userManager = userManager;
-            _currencyService = currencyService;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
         {
-            var user = await _userManager.GetUserAsync(User);
-            var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
-
-            List<ServiceRequest> requests;
-
-            if (userRole == "Client" && user.ClientId.HasValue)
+            try
             {
-                requests = await _context.ServiceRequests
-                    .Include(r => r.Contract)
-                    .Where(r => r.Contract.ClientId == user.ClientId.Value)
-                    .OrderByDescending(r => r.RequestDate)
-                    .ToListAsync();
+                var response = await _apiClient.GetAsync<ApiResponse<List<ServiceRequestDto>>>("api/servicerequests");
+
+                if (response.Success && response.Data != null)
+                    return View(response.Data);
+
+                TempData["Error"] = response.Message;
+                return View(new List<ServiceRequestDto>());
             }
-            else
+            catch (Exception ex)
             {
-                requests = await _context.ServiceRequests
-                    .Include(r => r.Contract)
-                    .OrderByDescending(r => r.RequestDate)
-                    .ToListAsync();
+                _logger.LogError(ex, "Error loading service requests");
+                TempData["Error"] = "Could not load service requests.";
+                return View(new List<ServiceRequestDto>());
             }
-
-            return View(requests);
-        }
-
-        // GET: ServiceRequests/Search
-        // GET: ServiceRequests/Search
-        public async Task<IActionResult> Search(RequestStatus? status, string searchTerm)
-        {
-            var user = await _userManager.GetUserAsync(User);
-            var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
-
-            var query = _context.ServiceRequests
-                .Include(r => r.Contract)
-                .AsQueryable();
-
-            // Filter by client role
-            if (userRole == "Client" && user.ClientId.HasValue)
-            {
-                query = query.Where(r => r.Contract.ClientId == user.ClientId.Value);
-            }
-
-            // Filter by status - this handles the enum correctly
-            if (status.HasValue)
-            {
-                query = query.Where(r => r.Status == status.Value);
-            }
-
-            // Filter by search term (request number or description)
-            if (!string.IsNullOrEmpty(searchTerm))
-            {
-                query = query.Where(r =>
-                    r.RequestNumber.Contains(searchTerm) ||
-                    r.Description.Contains(searchTerm) ||
-                    r.Contract.ContractNumber.Contains(searchTerm));
-            }
-
-            var requests = await query
-                .OrderByDescending(r => r.RequestDate)
-                .ToListAsync();
-
-            return PartialView("_RequestList", requests);
-        }
-        [Authorize(Roles = "Admin,LogisticsCoordinator")]
-        public async Task<IActionResult> Create(int contractId)
-        {
-            var contract = await _context.Contracts
-                .Include(c => c.Client)
-                .FirstOrDefaultAsync(c => c.ContractId == contractId);
-
-            if (contract == null)
-                return NotFound();
-
-            // Check if contract allows service requests (only Active contracts)
-            if (!contract.canCreateServiceRequest())
-            {
-                TempData["Error"] = $"Cannot create service request. Contract status is {contract.Status}";
-                return RedirectToAction("Details", "Contracts", new { id = contractId });
-            }
-
-            ViewBag.Contract = contract;
-            ViewBag.CurrentRate = await _currencyService.GetExchangeRate("USD", "ZAR");
-
-            return View(new ServiceRequest { ContractId = contractId });
-        }
-
-        [HttpPost]
-        [Authorize(Roles = "Admin,LogisticsCoordinator")]
-        public async Task<IActionResult> Create(ServiceRequest serviceRequest, decimal costUSD)
-        {
-            var contract = await _context.Contracts.FindAsync(serviceRequest.ContractId);
-
-            if (contract == null)
-                return NotFound();
-
-            // Check if contract allows service requests (only Active contracts)
-            if (!contract.canCreateServiceRequest())
-            {
-                ModelState.AddModelError("", "Cannot create service request for expired or on-hold contracts");
-                ViewBag.Contract = contract;
-                ViewBag.CurrentRate = await _currencyService.GetExchangeRate("USD", "ZAR");
-                return View(serviceRequest);
-            }
-
-            if (ModelState.IsValid)
-            {
-                var rate = await _currencyService.GetExchangeRate("USD", "ZAR");
-                serviceRequest.CostUSD = costUSD;
-                serviceRequest.CostZAR = costUSD * rate;
-                serviceRequest.ExchangeRate = rate;
-                serviceRequest.Status = RequestStatus.Pending;
-                serviceRequest.RequestDate = DateTime.UtcNow;
-
-                _context.ServiceRequests.Add(serviceRequest);
-                await _context.SaveChangesAsync();
-
-                TempData["Success"] = $"Service request created successfully! Cost: ${costUSD:F2} USD / R{serviceRequest.CostZAR:F2} ZAR";
-                return RedirectToAction("Details", "Contracts", new { id = contract.ContractId });
-            }
-
-            ViewBag.Contract = contract;
-            ViewBag.CurrentRate = await _currencyService.GetExchangeRate("USD", "ZAR");
-            return View(serviceRequest);
         }
 
         public async Task<IActionResult> Details(int id)
         {
-            var request = await _context.ServiceRequests
-                .Include(r => r.Contract)
-                .ThenInclude(c => c.Client)
-                .FirstOrDefaultAsync(r => r.ServiceRequestId == id);
+            try
+            {
+                var response = await _apiClient.GetAsync<ApiResponse<ServiceRequestDto>>($"api/servicerequests/{id}");
 
-            if (request == null)
-                return NotFound();
+                if (response.Success && response.Data != null)
+                    return View(response.Data);
 
-            var user = await _userManager.GetUserAsync(User);
-            var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
-
-            if (userRole == "Client" && (!user.ClientId.HasValue || request.Contract.ClientId != user.ClientId.Value))
-                return Unauthorized();
-
-            return View(request);
+                TempData["Error"] = response.Message;
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading service request {Id}", id);
+                TempData["Error"] = "Could not load service request details.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [Authorize(Roles = "Admin,LogisticsCoordinator")]
-        public async Task<IActionResult> UpdateStatus(int id, RequestStatus status)
+        public async Task<IActionResult> Create(int contractId)
         {
-            var request = await _context.ServiceRequests.FindAsync(id);
-            if (request == null)
-                return NotFound();
+            try
+            {
+                var contractResponse = await _apiClient.GetAsync<ApiResponse<ContractDto>>($"api/contracts/{contractId}");
 
-            request.Status = status;
+                if (!contractResponse.Success || contractResponse.Data == null)
+                {
+                    TempData["Error"] = contractResponse.Message ?? "Contract not found.";
+                    return RedirectToAction("Index", "Contracts");
+                }
 
-            if (status == RequestStatus.Completed)
-                request.CompletionDate = DateTime.UtcNow;
+                var contract = contractResponse.Data;
 
-            await _context.SaveChangesAsync();
+                if (contract.Status != "Active")
+                {
+                    TempData["Error"] = $"Cannot create service request. Contract status is {contract.Status}.";
+                    return RedirectToAction("Details", "Contracts", new { id = contractId });
+                }
 
-            TempData["Success"] = $"Service request status updated to {status}";
-            return RedirectToAction(nameof(Details), new { id });
+                ViewBag.Contract = contract;
+                ViewBag.CurrentRate = await GetExchangeRateAsync();
+
+                return View(new CreateServiceRequestDto
+                {
+                    ContractId = contractId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading create service request form");
+                TempData["Error"] = "Could not load create form.";
+                return RedirectToAction("Index", "Contracts");
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,LogisticsCoordinator")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(CreateServiceRequestDto request)
+        {
+            if (!ModelState.IsValid)
+            {
+                await ReloadCreateViewDataAsync(request.ContractId);
+                return View(request);
+            }
+
+            try
+            {
+                var response = await _apiClient.PostAsync<ApiResponse<ServiceRequestDto>>(
+                    "api/servicerequests",
+                    request
+                );
+
+                if (response.Success)
+                {
+                    TempData["Success"] = response.Message;
+                    return RedirectToAction("Details", "Contracts", new { id = request.ContractId });
+                }
+
+                ModelState.AddModelError("", response.Message ?? "Could not create service request.");
+                await ReloadCreateViewDataAsync(request.ContractId);
+                return View(request);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating service request");
+                ModelState.AddModelError("", "Could not create service request. Please try again.");
+                await ReloadCreateViewDataAsync(request.ContractId);
+                return View(request);
+            }
+        }
+
+        // POST: ServiceRequests/UpdateStatus
+        [HttpPost]
+        [Authorize(Roles = "Admin,LogisticsCoordinator")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateStatus(int id, string status)
+        {
+            try
+            {
+                var updateDto = new UpdateServiceRequestStatusDto
+                {
+                    Status = status
+                };
+
+                var response = await _apiClient.PatchAsync<ApiResponse<object>>(
+                    $"api/servicerequests/{id}/status",
+                    updateDto
+                );
+
+                TempData[response.Success ? "Success" : "Error"] = response.Message;
+
+                return RedirectToAction(nameof(Details), new { id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating request status");
+                TempData["Error"] = "Could not update request status.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+        }
+
+        public async Task<IActionResult> Search(string? status, string? searchTerm)
+        {
+            try
+            {
+                var query = new List<string>();
+
+                if (!string.IsNullOrWhiteSpace(status))
+                    query.Add($"status={Uri.EscapeDataString(status)}");
+
+                if (!string.IsNullOrWhiteSpace(searchTerm))
+                    query.Add($"searchTerm={Uri.EscapeDataString(searchTerm)}");
+
+                var queryString = query.Any() ? "?" + string.Join("&", query) : "";
+
+                var response = await _apiClient.GetAsync<ApiResponse<List<ServiceRequestDto>>>(
+                    $"api/servicerequests{queryString}"
+                );
+
+                if (response.Success && response.Data != null)
+                    return PartialView("_RequestList", response.Data);
+
+                return PartialView("_RequestList", new List<ServiceRequestDto>());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching service requests");
+                return PartialView("_RequestList", new List<ServiceRequestDto>());
+            }
+        }
+
+        public async Task<IActionResult> MyRequests()
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+
+                if (user == null || !user.ClientId.HasValue)
+                {
+                    TempData["Error"] = "No client associated with your account.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var response = await _apiClient.GetAsync<ApiResponse<List<ServiceRequestDto>>>(
+                    $"api/servicerequests?clientId={user.ClientId.Value}"
+                );
+
+                if (response.Success && response.Data != null)
+                    return View("Index", response.Data);
+
+                return View("Index", new List<ServiceRequestDto>());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading my requests");
+                return View("Index", new List<ServiceRequestDto>());
+            }
         }
 
         [HttpGet]
         public async Task<IActionResult> GetExchangeRate(string fromCurrency, string toCurrency)
         {
-            var rate = await _currencyService.GetExchangeRate(fromCurrency, toCurrency);
+            var rate = await GetExchangeRateAsync(fromCurrency, toCurrency);
             return Json(new { rate });
         }
 
-        public async Task<IActionResult> MyRequests()
+        private async Task ReloadCreateViewDataAsync(int contractId)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (!user.ClientId.HasValue)
-                return Unauthorized();
+            try
+            {
+                var contractResponse = await _apiClient.GetAsync<ApiResponse<ContractDto>>($"api/contracts/{contractId}");
 
-            var requests = await _context.ServiceRequests
-                .Include(r => r.Contract)
-                .Where(r => r.Contract.ClientId == user.ClientId.Value)
-                .OrderByDescending(r => r.RequestDate)
-                .ToListAsync();
+                ViewBag.Contract = contractResponse.Success
+                    ? contractResponse.Data
+                    : null;
 
-            return View("Index", requests);
+                ViewBag.CurrentRate = await GetExchangeRateAsync();
+            }
+            catch
+            {
+                ViewBag.Contract = null;
+                ViewBag.CurrentRate = 18.50m;
+            }
+        }
+
+        private async Task<decimal> GetExchangeRateAsync(string fromCurrency = "USD", string toCurrency = "ZAR")
+        {
+            try
+            {
+                var response = await _apiClient.GetAsync<ApiResponse<decimal>>(
+                    $"api/currency/rate?fromCurrency={fromCurrency}&toCurrency={toCurrency}"
+                );
+
+                if (response.Success)
+                    return response.Data;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not load exchange rate from API. Using fallback rate.");
+            }
+
+            return 18.50m;
         }
     }
 }

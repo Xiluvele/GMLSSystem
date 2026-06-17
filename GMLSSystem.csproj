@@ -29,6 +29,21 @@
 		<Content Remove="GMLSSystem.Tests\**\*" />
 		<EmbeddedResource Remove="GMLSSystem.Tests\**\*" />
 		<None Remove="GMLSSystem.Tests\**\*" />
+
+		<Compile Remove="GMLSSystem.API\**\*.cs" />
+		<Content Remove="GMLSSystem.API\**\*" />
+		<EmbeddedResource Remove="GMLSSystem.API\**\*" />
+		<None Remove="GMLSSystem.API\**\*" />
+
+		<Compile Remove="GMLSSystem.Shared\**\*.cs" />
+		<Content Remove="GMLSSystem.Shared\**\*" />
+		<EmbeddedResource Remove="GMLSSystem.Shared\**\*" />
+		<None Remove="GMLSSystem.Shared\**\*" />
 	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="GMLSSystem.Shared\GMLSSystem.Shared.csproj" />
+	</ItemGroup>
+
 
 </Project>

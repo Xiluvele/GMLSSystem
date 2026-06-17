@@ -1,7 +1,8 @@
-﻿@model GMLSSystem.Models.Contract
+﻿@model GMLSSystem.Shared.Models.CreateContractDto
 @{
     ViewData["Title"] = "Create Contract";
-    var clients = ViewBag.Clients as List<GMLSSystem.Models.Client>;
+    var clients = ViewBag.Clients as List<GMLSSystem.Shared.Models.ClientDto>
+                  ?? new List<GMLSSystem.Shared.Models.ClientDto>();
 }
 
 <div class="container">
@@ -68,7 +69,7 @@
                             <label for="signedAgreement" class="form-label">Signed Agreement (PDF) *</label>
                             <input type="file" name="signedAgreement" class="form-control" accept=".pdf" required />
                             <small class="text-muted">Only PDF files are allowed</small>
-                            <span asp-validation-for="SignedAgreementPath" class="text-danger"></span>
+                            <span class="text-danger">@Html.ValidationMessage("signedAgreement")</span>
                         </div>
 
                         <div class="mb-3">

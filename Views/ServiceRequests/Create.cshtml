@@ -1,7 +1,7 @@
-﻿@model GMLSSystem.Models.ServiceRequest
+﻿@model GMLSSystem.Shared.Models.CreateServiceRequestDto
 @{
     ViewData["Title"] = "Create Service Request";
-    var contract = ViewBag.Contract as GMLSSystem.Models.Contract;
+    var contract = ViewBag.Contract as GMLSSystem.Shared.Models.ContractDto;
     var currentRate = ViewBag.CurrentRate;
 }
 

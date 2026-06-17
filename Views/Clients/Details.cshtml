@@ -1,61 +1,54 @@
-﻿@model GMLSSystem.Models.Client
+﻿@model GMLSSystem.Shared.Models.ContractDto
+
 @{
-    ViewData["Title"] = "Client Details";
+    ViewData["Title"] = "Contract Details";
+
+    var statusClass = Model.Status switch
+    {
+        "Active" => "success",
+        "Draft" => "warning",
+        "Expired" => "danger",
+        "OnHold" => "secondary",
+        _ => "secondary"
+    };
+
+    var serviceLevelClass = Model.ServiceLevel switch
+    {
+        "Basic" => "secondary",
+        "Standard" => "info",
+        "Premium" => "primary",
+        "Enterprise" => "dark",
+        _ => "secondary"
+    };
 }
 
 <div class="container">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-md-10">
             <div class="card">
                 <div class="card-header bg-info text-white">
-                    <h4 class="mb-0"><i class="fas fa-building"></i> Client Details</h4>
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-contract"></i> Contract Details
+                    </h4>
                 </div>
+
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
                             <dl class="row">
-                                <dt class="col-sm-4 text-muted">Company Name</dt>
+                                <dt class="col-sm-4 text-muted">Contract Number</dt>
                                 <dd class="col-sm-8">
-                                    <strong>@Model.Name</strong>
+                                    <strong>@Model.ContractNumber</strong>
                                 </dd>
 
-                                <dt class="col-sm-4 text-muted">Contact Email</dt>
+                                <dt class="col-sm-4 text-muted">Client</dt>
                                 <dd class="col-sm-8">
-                                    <a href="mailto:@Model.ContactEmail" class="text-decoration-none">
-                                        <i class="fas fa-envelope"></i> @Model.ContactEmail
-                                    </a>
+                                    <i class="fas fa-building"></i> @Model.ClientName
                                 </dd>
 
-                                <dt class="col-sm-4 text-muted">Phone Number</dt>
-                                <dd class="col-sm-8">
-                                    @if (!string.IsNullOrEmpty(Model.ContactPhone))
-                                    {
-                                        <a href="tel:@Model.ContactPhone">
-                                            <i class="fas fa-phone"></i> @Model.ContactPhone
-                                        </a>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">N/A</span>
-                                    }
-                                </dd>
-                            </dl>
-                        </div>
-                        <div class="col-md-6">
-                            <dl class="row">
                                 <dt class="col-sm-4 text-muted">Region</dt>
                                 <dd class="col-sm-8">
-                                    @{
-                                        var regionClass = Model.Region?.ToLower() switch
-                                        {
-                                            "international" => "info",
-                                            "johannesburg" => "success",
-                                            "cape town" => "primary",
-                                            "durban" => "warning",
-                                            _ => "secondary"
-                                        };
-                                    }
-                                    <span class="badge bg-@regionClass">
+                                    <span class="badge bg-secondary">
                                         <i class="fas fa-globe"></i> @(Model.Region ?? "Not specified")
                                     </span>
                                 </dd>
@@ -66,80 +59,127 @@
                                 </dd>
                             </dl>
                         </div>
+
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4 text-muted">Start Date</dt>
+                                <dd class="col-sm-8">
+                                    <i class="fas fa-calendar-check"></i> @Model.StartDate.ToString("yyyy-MM-dd")
+                                </dd>
+
+                                <dt class="col-sm-4 text-muted">End Date</dt>
+                                <dd class="col-sm-8">
+                                    <i class="fas fa-calendar-times"></i> @Model.EndDate.ToString("yyyy-MM-dd")
+                                </dd>
+
+                                <dt class="col-sm-4 text-muted">Status</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-@statusClass">@Model.Status</span>
+                                </dd>
+
+                                <dt class="col-sm-4 text-muted">Service Level</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-@serviceLevelClass">@Model.ServiceLevel</span>
+                                </dd>
+                            </dl>
+                        </div>
                     </div>
 
-                    @if (!string.IsNullOrEmpty(Model.Address))
+                    @if (!string.IsNullOrEmpty(Model.Description))
                     {
                         <div class="mt-3">
-                            <h6 class="text-muted"><i class="fas fa-location-dot"></i> Address</h6>
-                            <p class="bg-light p-3 rounded">@Model.Address</p>
+                            <h6 class="text-muted">
+                                <i class="fas fa-align-left"></i> Description
+                            </h6>
+                            <p class="bg-light p-3 rounded">@Model.Description</p>
                         </div>
                     }
 
-                    <!-- Contracts Section -->
                     <div class="mt-4">
                         <h5 class="border-bottom pb-2">
-                            <i class="fas fa-file-contract"></i> Contracts
+                            <i class="fas fa-file-pdf"></i> Signed Agreement
                         </h5>
-                        @if (Model.Contracts != null && Model.Contracts.Any())
+
+                        @if (!string.IsNullOrEmpty(Model.SignedAgreementPath))
                         {
-                            <div class="table-responsive mt-3">
-                                <table class="table table-hover">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Contract #</th>
-                                            <th>Start Date</th>
-                                            <th>End Date</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var contract in Model.Contracts)
-                                        {
-                                            <tr>
-                                                <td>
-                                                    <strong>@contract.ContractNumber</strong>
-                                                    <br />
-                                                    <small class="text-muted">@contract.ServiceLevel</small>
-                                                </td>
-                                                <td>@contract.StartDate.ToShortDateString()</td>
-                                                <td>@contract.EndDate.ToShortDateString()</td>
-                                                <td>
-                                                    <span class="badge bg-@(contract.Status.ToString() == "Active" ? "success" : 
-                                                                           contract.Status.ToString() == "Draft" ? "warning" : 
-                                                                           contract.Status.ToString() == "Expired" ? "danger" : "secondary")">
-                                                        @contract.Status
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <a asp-controller="Contracts" asp-action="Details" asp-route-id="@contract.ContractId" 
-                                                       class="btn btn-sm btn-outline-info">
-                                                        <i class="fas fa-eye"></i> View
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
+                            <a href="@Model.SignedAgreementPath" target="_blank" class="btn btn-outline-danger">
+                                <i class="fas fa-file-pdf"></i> View Signed Agreement
+                            </a>
+
+                            @if (!string.IsNullOrEmpty(Model.OriginalFileName))
+                            {
+                                <span class="ms-2 text-muted">@Model.OriginalFileName</span>
+                            }
                         }
                         else
                         {
-                            <div class="alert alert-light text-center py-3">
-                                <i class="fas fa-file-contract fa-2x text-muted mb-2"></i>
-                                <p class="mb-0 text-muted">No contracts found for this client.</p>
-                                <a asp-controller="Contracts" asp-action="Create" asp-route-clientId="@Model.ClientId" class="btn btn-sm btn-primary mt-2">
-                                    <i class="fas fa-plus"></i> Create Contract
-                                </a>
+                            <div class="alert alert-light">
+                                <i class="fas fa-info-circle"></i> No signed agreement uploaded for this contract.
                             </div>
                         }
                     </div>
+
+                    <div class="mt-4">
+                        <h5 class="border-bottom pb-2">
+                            <i class="fas fa-tools"></i> Contract Actions
+                        </h5>
+
+                        @if (User.IsInRole("Admin") || User.IsInRole("ContractManager"))
+                        {
+                            <form asp-action="UpdateStatus" method="post" class="row g-2 align-items-end">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.ContractId" />
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Update Status</label>
+                                    <select name="status" class="form-select">
+                                        <option value="Draft" selected="@(Model.Status == "Draft")">Draft</option>
+                                        <option value="Active" selected="@(Model.Status == "Active")">Active</option>
+                                        <option value="Expired" selected="@(Model.Status == "Expired")">Expired</option>
+                                        <option value="OnHold" selected="@(Model.Status == "OnHold")">On Hold</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <button type="submit" class="btn btn-warning text-white">
+                                        <i class="fas fa-sync-alt"></i> Update Status
+                                    </button>
+                                </div>
+                            </form>
+                        }
+                    </div>
+
+                    <div class="mt-4">
+                        <h5 class="border-bottom pb-2">
+                            <i class="fas fa-truck"></i> Service Requests
+                        </h5>
+
+                        <div class="alert alert-light text-center py-3">
+                            <i class="fas fa-truck fa-2x text-muted mb-2"></i>
+                            <p class="mb-0 text-muted">
+                                Service requests are managed through the Service Requests module.
+                            </p>
+
+                            @if (Model.Status == "Active")
+                            {
+                                <a asp-controller="ServiceRequests"
+                                   asp-action="Create"
+                                   asp-route-contractId="@Model.ContractId"
+                                   class="btn btn-sm btn-primary mt-2">
+                                    <i class="fas fa-plus"></i> Create Service Request
+                                </a>
+                            }
+                            else
+                            {
+                                <p class="text-muted mt-2">
+                                    Service requests can only be created for active contracts.
+                                </p>
+                            }
+                        </div>
+                    </div>
                 </div>
+
                 <div class="card-footer">
-                    <a asp-action="Edit" asp-route-id="@Model.ClientId" class="btn btn-warning text-white">
-                        <i class="fas fa-edit"></i> Edit
-                    </a>
                     <a asp-action="Index" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Back to List
                     </a>
@@ -153,16 +193,11 @@
     .card-header {
         border-bottom: none;
     }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(102, 126, 234, 0.05);
-        cursor: pointer;
-    }
-    
+
     dt {
         font-weight: 500;
     }
-    
+
     .rounded {
         border-radius: 8px !important;
     }

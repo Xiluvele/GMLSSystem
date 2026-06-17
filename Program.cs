@@ -6,6 +6,7 @@ using GMLSSystem.Services;
 using GMLSSystem.Services.Factories;
 using GMLSSystem.Services.Builders;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using GMLSSystem.Services.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,6 +53,18 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Identity/Account/AccessDenied";
     options.SlidingExpiration = true;
 });
+
+// Register API Client - ADD THESE LINES
+builder.Services.AddHttpClient<IApiClient, ApiClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7001/");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+
+// Add after existing service registrations
+//builder.Services.AddHttpClient<IApiClient, ApiClient>();
+builder.Services.AddScoped<IApiClient, ApiClient>();
 
 // Add session
 builder.Services.AddDistributedMemoryCache();

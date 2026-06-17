@@ -1,250 +1,144 @@
-﻿@using GMLSSystem.Models.Enums
-@model GMLSSystem.Models.ServiceRequest
+﻿@model GMLSSystem.Shared.Models.ServiceRequestDto
 
 @{
     ViewData["Title"] = "Service Request Details";
+
+    var statusClass = Model.Status switch
+    {
+        "Pending" => "warning",
+        "InProgress" => "info",
+        "Completed" => "success",
+        "Cancelled" => "danger",
+        _ => "secondary"
+    };
+
+    var canUpdateStatus = Model.Status != "Completed" && Model.Status != "Cancelled";
 }
 
 <div class="container">
-
     <div class="row justify-content-center">
-
         <div class="col-md-8">
-
             <div class="card">
-
                 <div class="card-header bg-secondary text-white">
-
                     <h4 class="mb-0">
-                        <i class="fas fa-truck"></i>
-                        Service Request Details
+                        <i class="fas fa-truck"></i> Service Request Details
                     </h4>
-
                 </div>
 
                 <div class="card-body">
-
                     <div class="row">
-
-                        <!-- LEFT SIDE -->
                         <div class="col-md-6">
-
                             <dl class="row">
-
                                 <dt class="col-sm-4">Request #</dt>
-                                <dd class="col-sm-8">
-                                    @Model.RequestNumber
-                                </dd>
+                                <dd class="col-sm-8">@Model.RequestNumber</dd>
 
                                 <dt class="col-sm-4">Contract</dt>
-
                                 <dd class="col-sm-8">
-
                                     <a asp-controller="Contracts"
                                        asp-action="Details"
                                        asp-route-id="@Model.ContractId">
-
-                                        @Model.Contract?.ContractNumber
-
+                                        @Model.ContractNumber
                                     </a>
-
                                 </dd>
 
                                 <dt class="col-sm-4">Client</dt>
-
-                                <dd class="col-sm-8">
-                                    @Model.Contract?.ClientName
-                                </dd>
+                                <dd class="col-sm-8">@Model.ClientName</dd>
 
                                 <dt class="col-sm-4">Request Date</dt>
-
                                 <dd class="col-sm-8">
                                     @Model.RequestDate.ToString("yyyy-MM-dd HH:mm")
                                 </dd>
-
                             </dl>
-
                         </div>
 
-                        <!-- RIGHT SIDE -->
                         <div class="col-md-6">
-
                             <dl class="row">
-
                                 <dt class="col-sm-4">Cost (USD)</dt>
-
-                                <dd class="col-sm-8">
-                                    $@Model.CostUSD.ToString("N2")
-                                </dd>
+                                <dd class="col-sm-8">$@Model.CostUSD.ToString("N2")</dd>
 
                                 <dt class="col-sm-4">Cost (ZAR)</dt>
-
-                                <dd class="col-sm-8">
-                                    R @Model.CostZAR.ToString("N2")
-                                </dd>
+                                <dd class="col-sm-8">R @Model.CostZAR.ToString("N2")</dd>
 
                                 <dt class="col-sm-4">Exchange Rate</dt>
-
                                 <dd class="col-sm-8">
                                     1 USD = @Model.ExchangeRate.ToString("F2") ZAR
                                 </dd>
 
                                 <dt class="col-sm-4">Status</dt>
-
                                 <dd class="col-sm-8">
-
-                                    @{
-                                        var statusClass = Model.Status switch
-                                        {
-                                            RequestStatus.Pending => "warning",
-                                            RequestStatus.InProgress => "info",
-                                            RequestStatus.Completed => "success",
-                                            RequestStatus.Cancelled => "danger",
-                                            _ => "secondary"
-                                        };
-                                    }
-
-                                    <span class="badge bg-@statusClass">
-                                        @Model.Status
-                                    </span>
-
+                                    <span class="badge bg-@statusClass">@Model.Status</span>
                                 </dd>
-
                             </dl>
-
                         </div>
-
                     </div>
 
-                    <!-- DESCRIPTION -->
                     <div class="mt-3">
-
                         <h6>Description</h6>
-
                         <p>@Model.Description</p>
-
                     </div>
-
-                    <!-- COMPLETION -->
-                    @if (Model.CompletionDate.HasValue)
-                    {
-                        <div class="alert alert-success">
-
-                            <i class="fas fa-check-circle"></i>
-
-                            Completed on:
-                            @Model.CompletionDate.Value
-                            .ToString("yyyy-MM-dd HH:mm")
-
-                        </div>
-                    }
-
                 </div>
 
-                <!-- FOOTER -->
                 <div class="card-footer">
-
-                    @if (User.IsInRole("Admin") ||
-                    User.IsInRole("LogisticsCoordinator"))
+                    @if ((User.IsInRole("Admin") || User.IsInRole("LogisticsCoordinator")) && canUpdateStatus)
                     {
-                        if (Model.Status != RequestStatus.Completed &&
-                        Model.Status != RequestStatus.Cancelled)
-                        {
-                            <button type="button"
-                                    class="btn btn-primary"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#statusModal">
-
-                                <i class="fas fa-exchange-alt"></i>
-                                Update Status
-
-                            </button>
-                        }
+                        <button type="button"
+                                class="btn btn-primary"
+                                data-bs-toggle="modal"
+                                data-bs-target="#statusModal">
+                            <i class="fas fa-exchange-alt"></i> Update Status
+                        </button>
                     }
 
-                    <a asp-action="Index"
-                       class="btn btn-secondary">
-
+                    <a asp-action="Index" class="btn btn-secondary">
                         Back to List
-
                     </a>
-
                 </div>
-
             </div>
-
         </div>
-
     </div>
-
 </div>
 
-<!-- STATUS UPDATE MODAL -->
-<div class="modal fade"
-     id="statusModal"
-     tabindex="-1">
-
+<div class="modal fade" id="statusModal" tabindex="-1">
     <div class="modal-dialog">
-
         <div class="modal-content">
-
-            <div class="modal-header">
-
-                <h5 class="modal-title">
-                    Update Request Status
-                </h5>
-
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal">
-                </button>
-
-            </div>
-
             <form asp-action="UpdateStatus"
                   asp-route-id="@Model.ServiceRequestId"
                   method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Request Status</h5>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal">
+                    </button>
+                </div>
 
                 <div class="modal-body">
-
                     <div class="mb-3">
+                        <label class="form-label">Status</label>
 
-                        <label asp-for="Status"
-                               class="form-label">
-                        </label>
-
-                        <select asp-for="Status"
-                                asp-items="Html.GetEnumSelectList<RequestStatus>()"
-                                class="form-select">
+                        <select name="status" class="form-select">
+                            <option value="Pending" selected="@(Model.Status == "Pending")">Pending</option>
+                            <option value="InProgress" selected="@(Model.Status == "InProgress")">In Progress</option>
+                            <option value="Completed" selected="@(Model.Status == "Completed")">Completed</option>
+                            <option value="Cancelled" selected="@(Model.Status == "Cancelled")">Cancelled</option>
                         </select>
-
                     </div>
-
                 </div>
 
                 <div class="modal-footer">
-
                     <button type="button"
                             class="btn btn-secondary"
                             data-bs-dismiss="modal">
-
                         Cancel
-
                     </button>
 
-                    <button type="submit"
-                            class="btn btn-primary">
-
+                    <button type="submit" class="btn btn-primary">
                         Update Status
-
                     </button>
-
                 </div>
-
             </form>
-
         </div>
-
     </div>
-
 </div>

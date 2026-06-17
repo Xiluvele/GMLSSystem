@@ -2,177 +2,282 @@
 
 ## Overview
 
-The Global Logistics Management System (GLMS) is an enterprise-grade ASP.NET Core MVC application developed for TechMove Logistics. The purpose of the system is to replace the company’s outdated legacy workflow that relied on spreadsheets, emails, and manual communication processes.
+The Global Logistics Management System (GLMS) is a multi-layered enterprise application developed for TechMove Logistics using ASP.NET Core MVC, ASP.NET Core Web API, SQL Server, Entity Framework Core, JWT Authentication, Docker, and automated testing.
 
-The system centralises contract management, client management, service request processing, financial operations, and workflow validation into a single modern web application.
+The system was designed to replace manual logistics processes that relied on spreadsheets, emails, and disconnected workflows. It centralises client management, contract administration, service request processing, document management, currency conversion, authentication, and reporting into a single integrated platform.
+
+The solution follows a service-oriented architecture where the MVC application communicates with a separate Web API, allowing the frontend and backend to operate independently while sharing the same business processes and database.
 
 ---
 
-# Features
+## Features
 
-## Client Management
+### Client Management
 
-* Create and manage clients
-* Store contact details and regional information
-* Live search functionality
+* Create, update, view, and delete clients
+* Store company information and contact details
+* Regional client management
+* Search and filtering functionality
 
-## Contract Management
+### Contract Management
 
 * Create and manage contracts
-* Contract status workflow:
+* Upload and view signed PDF agreements
+* Contract lifecycle management:
 
   * Draft
   * Active
   * On Hold
   * Expired
-* Upload and download signed PDF agreements
-* Contract filtering using LINQ queries
+* Advanced contract filtering and search
+* Contract details and status tracking
 
-## Service Request Processing
+### Service Request Management
 
-* Create service requests linked to contracts
-* Business workflow validation
-* Prevent requests for expired or suspended contracts
+* Create service requests linked to active contracts
+* Business rule validation
+* Service request status management
+* Currency conversion support
+* Cost tracking in USD and ZAR
 
-## Currency Conversion API Integration
+### Currency Conversion Integration
 
-* External exchange rate API integration
+* External Exchange Rate API integration
 * Automatic USD to ZAR conversion
-* Real-time financial calculations
+* Fallback exchange rates when external services are unavailable
 
-## Role-Based Authentication & Authorization
+### Authentication and Security
 
-Implemented using ASP.NET Identity.
+* ASP.NET Identity user management
+* JWT (JSON Web Token) Authentication
+* Role-based authorization
+* Protected API endpoints
+* User authentication and login services
 
-Roles include:
+### API Layer
 
-* Administrator
-* Contract Manager
-* Logistics Staff
-* Finance Staff
-* Client Users
+* Separate ASP.NET Core Web API project
+* RESTful API endpoints
+* DTO-based communication
+* Swagger API documentation and testing
+* Secure endpoint access using JWT authentication
 
-## Dashboard & Reporting
+### Testing
 
-* Role-based dashboards
-* Operational statistics
-* Recent activity tracking
+* Unit testing using xUnit
+* API Integration Testing
+* Automated endpoint validation
+* Authentication testing
+* Contract and service request workflow testing
 
-## Unit Testing
+### Containerization
 
-Implemented using xUnit.
+* Docker support
+* Docker Compose multi-container deployment
+* SQL Server container
+* ASP.NET Core Web API container
+* ASP.NET Core MVC container
 
-Tests include:
+### DevOps and Automation
 
-* Currency conversion testing
-* File validation testing
-* Workflow validation
-* Business logic testing
-* Edge case testing
-
-## DevOps & Continuous Integration
-
-GitHub Actions CI pipeline configured to:
-
-* Restore dependencies
-* Build the solution
-* Execute automated unit tests
+* GitHub Actions Continuous Integration
+* Automated build validation
+* Automated test execution
+* Source control integration through GitHub
 
 ---
 
-# Technologies Used
+## Solution Structure
 
-* ASP.NET Core MVC
+```text
+GMLSSystem
+│
+├── GMLSSystem                 (ASP.NET Core MVC Frontend)
+├── GMLSSystem.API             (ASP.NET Core Web API)
+├── GMLSSystem.Shared          (Shared DTOs and Models)
+├── GMLSSystem.Tests           (Unit and Integration Tests)
+└── docker-compose.yml         (Container Orchestration)
+```
+
+---
+
+## Technologies Used
+
+### Backend
+
+* ASP.NET Core 8
+* ASP.NET Core Web API
 * Entity Framework Core
 * SQL Server
 * ASP.NET Identity
-* LINQ
-* xUnit
-* Moq
-* GitHub Actions
+* JWT Authentication
+
+### Frontend
+
+* ASP.NET Core MVC
+* Razor Views
 * Bootstrap 5
+* JavaScript
+* jQuery
+
+### Testing
+
+* xUnit
+* ASP.NET Core Integration Testing
+* Microsoft Test Host
+
+### DevOps
+
+* GitHub Actions
+* Docker
+* Docker Compose
+* GitHub
+
+### Additional Technologies
+
+* Swagger / OpenAPI
+* LINQ
+* REST APIs
 
 ---
 
-# System Architecture
+## Running the Project Locally
 
-The application follows the MVC architectural pattern:
-
-* Models handle business entities and database logic
-* Views manage the user interface
-* Controllers manage application flow and business logic
-
-The project also incorporates enterprise concepts such as:
-
-* TOGAF architecture principles
-* Design patterns:
-
-  * Factory Method
-  * Abstract Factory
-  * Builder Pattern
-
----
-
-# How to Run the Project
-
-## Prerequisites
+### Prerequisites
 
 * Visual Studio 2022
 * .NET 8 SDK
 * SQL Server
+* Docker Desktop (Optional)
 
-## Steps
+### Steps
 
 1. Clone the repository
+
+```bash
+git clone <repository-url>
+```
+
 2. Open the solution in Visual Studio
+
 3. Restore NuGet packages
-4. Update the database using Entity Framework migrations
-5. Run the application
+
+```bash
+dotnet restore
+```
+
+4. Update the database
+
+```bash
+dotnet ef database update
+```
+
+5. Start both startup projects:
+
+* GMLSSystem.API
+* GMLSSystem
+
+6. Run the solution
 
 ---
 
-# Running Unit Tests
+## Running Integration Tests
 
-Open Test Explorer in Visual Studio and run all tests.
+Using Visual Studio Test Explorer:
 
-Or use:
+* Open Test Explorer
+* Run All Tests
+
+Using the command line:
 
 ```bash
 dotnet test
 ```
 
+The project includes automated API integration tests covering:
+
+* Authentication
+* Contract Management
+* Service Requests
+* API Endpoints
+* Status Updates
+
 ---
 
-# GitHub Actions CI/CD
+## Docker Deployment
 
-The project includes automated Continuous Integration using GitHub Actions.
+Build the containers:
 
-Workflow file location:
+```bash
+docker compose build
+```
+
+Start the containers:
+
+```bash
+docker compose up
+```
+
+The Docker environment consists of:
+
+* SQL Server Container
+* ASP.NET Core Web API Container
+* ASP.NET Core MVC Container
+
+Docker Compose automatically creates the network required for communication between the containers.
+
+---
+
+## GitHub Actions CI
+
+The project includes an automated GitHub Actions workflow.
+
+Workflow location:
 
 ```text
 .github/workflows/dotnet.yml
 ```
 
-The pipeline automatically:
+The workflow automatically:
 
-* Builds the project
-* Runs all unit tests
-* Validates project integration
-
----
-
-# Project Demonstration
-
-An unlisted YouTube demonstration video was created to showcase:
-
-* System functionality
-* Workflow logic
-* Unit testing
-* GitHub Actions CI pipeline
-* Application architecture
+* Restores dependencies
+* Builds the solution
+* Executes automated tests
+* Validates project integrity
 
 ---
 
-# License
+## API Documentation
 
-This project was developed for academic purposes.
+Swagger is available when running the API project:
+
+```text
+https://localhost:<port>/swagger
+```
+
+Swagger can be used to:
+
+* Test API endpoints
+* Authenticate using JWT tokens
+* Validate API responses
+* Review endpoint documentation
+
+---
+
+## Project Demonstration
+
+The project demonstration covers:
+
+* MVC Application Functionality
+* Web API Integration
+* JWT Authentication
+* Swagger API Testing
+* Automated Integration Testing
+* Docker Containerization
+* GitHub Actions CI Workflow
+
+---
+
+## License
+
+This project was developed for academic and educational purposes.
